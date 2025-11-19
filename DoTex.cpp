@@ -18,7 +18,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
     }
 
     if (node->operation == kVariable) {
-        fprintf(out, "%c", node->value.variable_name);
+        fprintf(out, "%s", node->value.variable_name);
         return;
     }
 
@@ -89,11 +89,11 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
     }
 }
 
-void DoTex(DifNode_t *node, char value) {
+void DoTex(DifNode_t *node, char *value) {
     assert(node);
     FILE *out = fopen("diftex.tex", "w");
     fprintf(out, "\\documentclass{article}\n\\begin{document}\n\\fontsize{30}{36}\\selectfont\n\\[\n");
-    fprintf(out, "\\frac{d}{d%c} = ", value);
+    fprintf(out, "\\frac{d}{d%s} = ", value);
     DoTexInner(node, out);
     fprintf(out, "\n");
     fprintf(out, "\\]\n\\end{document}");

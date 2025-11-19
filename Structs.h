@@ -11,7 +11,7 @@ typedef char* Dif_t;
 struct Value {
     OperationTypes type;
     double number;
-    char variable_name;
+    char *variable_name;
     int pos_of_variable;
 };
 
@@ -50,7 +50,7 @@ typedef struct DumpInfo {
 } DumpInfo;
 
 struct VariableInfo {
-    char variable_name;
+    char *variable_name;
     double variable_value;
 };
 

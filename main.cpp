@@ -33,11 +33,11 @@ int main(void) {
         printf("AAAAAA");
     }
     DoTreeInGraphviz(root.root, &DumpInfo, root.root);
-    DifNode_t *new_tree = Dif(root.root, 'x');
+    DifNode_t *new_tree = Dif(root.root, "x");
     DifRoot root2 = {};
     root2.root = new_tree;
     DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
-    DoTex(root2.root, 'x');
+    DoTex(root2.root, "x");
 
     ReadVariableValue(i, Variable_Array);
     

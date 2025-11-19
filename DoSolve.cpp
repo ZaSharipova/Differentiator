@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <math.h>
+#include <string.h>
 
 #include "Enums.h"
 #include "Structs.h"
@@ -18,6 +19,8 @@
 #define MUL_(left, right) NewNode(kOperation, kMul, left, right) 
 #define DIV_(left, right) NewNode(kOperation, kDiv, left, right) 
 #define POW_(left, right) NewNode(kOperation, kPow, left, right)
+#define SIN_(right) NewNode(kOperation, kCos, NULL, right)
+#define COS_(right) NewNode(kOperation, kCos, NULL, right)
 
 DifNode_t *NewNumber(double value) {
 
@@ -74,13 +77,13 @@ DifNode_t *CopyNode(DifNode_t *node) {
 }
 
 
-DifNode_t *Dif(DifNode_t *node, char main_var) {
+DifNode_t *Dif(DifNode_t *node, char *main_var) {
     assert(node);
 
     if (node->operation == kNumber) {
         return NewNumber(0);
     } else if (node->operation == kVariable) {
-        if (node->value.variable_name == main_var) {
+        if (strcmp(node->value.variable_name, main_var)) {
             return NewNumber(1);
         } else {
             return NewNumber(0);
@@ -96,8 +99,12 @@ DifNode_t *Dif(DifNode_t *node, char main_var) {
         case (kDiv):
             return DIV_(SUB_(MUL_(DL, CR), MUL_(CL, DR)), POW_(CR, NewNumber(2)));
         case (kSin):
-            return NewNode(cos(node->right.value.number)); //
-
+            return MUL_(COS_(CR), DR);
+        case (kCos):
+            return MUL_(NewNumber(-1), SIN_(DR));
+        case (kTg):
+            return MUL_(DIV_(NewNumber(1), POW_(COS_(CR), NewNumber(2))), DR);
+        
         default: 
             fprintf(stderr, "No such operation.\n");
             return NULL;

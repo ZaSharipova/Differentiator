@@ -71,7 +71,7 @@ void SkipSpaces(char *buffer, size_t *pos) {
     assert(buffer);
     assert(pos);
 
-    while (buffer[*pos] != '\0' && isspace((unsigned char)buffer[*pos])) {
+    while (buffer[*pos] == '\0' || isspace((unsigned char)buffer[*pos])) {
         (*pos)++;
     }
 }
@@ -83,39 +83,25 @@ Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
 
     SkipSpaces(buffer, pos);
 
+    printf("%s", buffer + *pos);
     size_t start = *pos;
     size_t i = start;
+    int cnt = 0;
 
     if (buffer[i] == '\0' || buffer[i] == '\n') {
         fprintf(stderr, "Syntax error: empty title at position %zu\n", *pos);
         return NULL;
     }
 
-    if (buffer[i] == '+' || buffer[i] == '-' || buffer[i] == '*' || buffer[i] == '/') {
-        i++;
-    } else {
-        while (buffer[i] != '\0' && buffer[i] != '\n' &&
-               buffer[i] != ' ' && buffer[i] != '\t' &&
-               buffer[i] != '(' && buffer[i] != ')') {
-            i++;
-        }
-    }
-
-    if (i == start) {
-        fprintf(stderr, "Syntax error: expected title at position %zu\n", *pos);
+    int result = sscanf(buffer + *pos, "%*[^' ']%n", &cnt);
+    if (result < 0) {
+        fprintf(stderr, "Sscanf error.");
         return NULL;
     }
+    *(buffer + *pos + cnt) = '\0';
 
-    size_t len = i - start;
-
-    char saved = buffer[start + len];
-    buffer[start + len] = '\0';
-
-    fprintf(logfile, "Read title: '%s'\n", buffer + start);
-    //fprintf(logfile, "ReadTitle: '%s' at %zu (len=%zu)\n", buffer + start, start, len);
-
-    buffer[start + len] = saved;
-    *pos = start + len;
+    fprintf(logfile, "'%s'\n", buffer + *pos);
+    *pos = start + (size_t)cnt;
 
     return buffer + start;
 }
@@ -127,8 +113,9 @@ Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     assert(arr);
     assert(i);
 
-    const char *s = *ptr;
+    char *s = *ptr;
     char *endptr = NULL;
+    double val = strtod(s, &endptr);
 
     Value *value = (Value *) calloc(1, sizeof(Value));
     if (!value) return NULL;
@@ -154,20 +141,25 @@ Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
         return value;
     }
 
-    if (isalpha((unsigned char)s[0])) {
-        node->operation = kVariable;
-        value->pos_of_variable = (int)s[0];
-        value->variable_name = s[0];
-        arr[(*i) ++].variable_name = s[0];
+    if (strncmp(s, "tg", sizeof("tg") - 1) == 0) {
+        node->operation = kOperation;
+        value->type = kTg;
         return value;
     }
-
-    double val = strtod(s, &endptr);
-    if (endptr != s) {
+    else if (endptr != s) {
         node->operation = kNumber;
         value->number = val;
         return value;
     }
+
+    else {
+        node->operation = kVariable;
+        value->pos_of_variable = (int)s[0];
+        value->variable_name = s;
+        arr[(*i) ++].variable_name = s;
+        return value;
+    }
+
 
     free(value);
     return NULL;
@@ -204,6 +196,7 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
         new_node->parent = node;
 
         SkipSpaces(buffer, pos);
+        // fprintf(logfile, "\n%s", buffer + *pos);
         DifNode_t *left_child = NULL;
         CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &left_child, arr, i));
         new_node->left = left_child;
@@ -230,7 +223,7 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
         return kSuccess;
 
     } else {
-        fprintf(stderr, "Syntax error in %zu %c", *pos, buffer[*pos]);
+        fprintf(stderr, "Syntax error in %zu '%c'\n", *pos, buffer[*pos]);
         return kSyntaxError;
     }
 
@@ -243,7 +236,7 @@ void ReadVariableValue(int size, VariableInfo *arr) {
     for (int pos = 0; pos < size; pos++) {
         int found = 0;
         for (int i = 0; i < pos; i++) {
-            if (arr[i].variable_name == arr[pos].variable_name) {
+            if (strcmp(arr[i].variable_name, arr[pos].variable_name) == 0) {
                 found = 1;
                 break;
             }
@@ -251,9 +244,9 @@ void ReadVariableValue(int size, VariableInfo *arr) {
         if (found)
             continue;
 
-        printf("Введите значение переменной %c:\n", arr[pos].variable_name);
+        printf("Введите значение переменной %s:\n", arr[pos].variable_name);
         if (scanf("%lf", &arr[pos].variable_value) != 1) {
-            fprintf(stderr, "Ошибка ввода значения переменной %c.\n", arr[pos].variable_name);
+            fprintf(stderr, "Ошибка ввода значения переменной %s.\n", arr[pos].variable_name);
             arr[pos].variable_value = 0;
         }
         

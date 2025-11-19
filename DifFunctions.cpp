@@ -48,14 +48,14 @@ double SolveEquation(DifRoot *root, VariableInfo *arr) {
     return EvaluateExpression(root->root, arr);
 }
 
-static double FindVariableValue(VariableInfo *arr, char var_name) {
+static double FindVariableValue(VariableInfo *arr, char *var_name) {
     assert(arr);
 
     for (size_t i = 0; i < MAX_VARIABLES; i++) {
-        if (arr[i].variable_name == var_name) {
+        if (strcmp(arr[i].variable_name, var_name) == 0) {
             return arr[i].variable_value;
         }
-        if (arr[i].variable_name == '\0') {
+        if (arr[i].variable_name == "\0") {
             break;
         }
     }
