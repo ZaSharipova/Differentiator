@@ -27,9 +27,6 @@ enum OperationTypes {
     kSin,
     kCos,
     kTg,
-    kDerivative,
-    kNumberk,
-    kVariablek,
 };
 
 #endif //ENUMS_H_

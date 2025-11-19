@@ -134,24 +134,28 @@ Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     if (!value) return NULL;
 
     if (s[0] == '+') {
+        node->operation = kOperation;
         value->type = kAdd;
         return value;
     }
     if (s[0] == '-') {
+        node->operation = kOperation;
         value->type = kSub;
         return value;
     }
     if (s[0] == '*') {
+        node->operation = kOperation;
         value->type = kMul;
         return value;
     }
     if (s[0] == '/') {
+        node->operation = kOperation;
         value->type = kDiv;
         return value;
     }
 
     if (isalpha((unsigned char)s[0])) {
-        value->type = kVariablek;
+        node->operation = kVariable;
         value->pos_of_variable = (int)s[0];
         value->variable_name = s[0];
         arr[(*i) ++].variable_name = s[0];
@@ -160,7 +164,7 @@ Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
 
     double val = strtod(s, &endptr);
     if (endptr != s) {
-        value->type = kNumberk;
+        node->operation = kNumber;
         value->number = val;
         return value;
     }
@@ -190,7 +194,7 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
         NodeCtor(&new_node, NULL);
         (*pos)++;
         Dif_t char_to_convert = ReadTitle(logfile, buffer, pos);
-        Value *val_ptr = Convert(&char_to_convert, node, arr, i);
+        Value *val_ptr = Convert(&char_to_convert, new_node, arr, i);
         if (!val_ptr) {
             fprintf(stderr, "Conversion error.\n");
             return kSyntaxError;
@@ -233,11 +237,25 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
     return kSuccess;
 }
 
-void ReadVariableValues(int size, VariableInfo *arr) {
+void ReadVariableValue(int size, VariableInfo *arr) {
     assert(arr);
 
     for (int pos = 0; pos < size; pos++) {
+        int found = 0;
+        for (int i = 0; i < pos; i++) {
+            if (arr[i].variable_name == arr[pos].variable_name) {
+                found = 1;
+                break;
+            }
+        }
+        if (found)
+            continue;
+
         printf("Введите значение переменной %c:\n", arr[pos].variable_name);
-        scanf("%d", &arr[pos].variable_value);
+        if (scanf("%lf", &arr[pos].variable_value) != 1) {
+            fprintf(stderr, "Ошибка ввода значения переменной %c.\n", arr[pos].variable_name);
+            arr[pos].variable_value = 0;
+        }
+        
     }
 }

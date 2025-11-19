@@ -51,7 +51,7 @@ typedef struct DumpInfo {
 
 struct VariableInfo {
     char variable_name;
-    int variable_value;
+    double variable_value;
 };
 
 #endif //STRUCTS_H_

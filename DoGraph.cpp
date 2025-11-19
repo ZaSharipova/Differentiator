@@ -32,6 +32,14 @@ static const char *PrintExpressionType(const DifNode_t *node) {
             return "MUL";
         case (kDiv):
             return "DIV";
+        case (kPow):
+            return "POW";
+        case (kSin):
+            return "Sin";
+        case (kCos):
+            return "COS";
+        case (kTg):
+            return "TAN";
         default: return NULL;
     }
 }
@@ -41,12 +49,12 @@ void PrintDotNode(FILE *file, const DifNode_t *node, const DifNode_t *node_color
     assert(node);
     assert(node_colored);
 
-    if (node->value.type == kNumberk) {
+    if (node->operation == kNumber) {
         fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Operation: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
         fprintf(file, "  Value: %lf  \nLeft: %p  Right: %p\" shape=egg color=black width=4 height=1.5 fixedsize=true];\n", 
                 node->value.number, (void *)node->left, (void *)node->right);
-    } else if (node->value.type == kVariablek) {
+    } else if (node->operation == kVariable) {
         fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Operation: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
         fprintf(file, "  Value: %c  \nLeft: %p  Right: %p\" shape=octagon color=black width=6 height=1.5 fixedsize=true];\n", 
