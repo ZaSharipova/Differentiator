@@ -21,6 +21,7 @@
 #define POW_(left, right) NewNode(kOperation, kPow, left, right)
 #define SIN_(right) NewNode(kOperation, kCos, NULL, right)
 #define COS_(right) NewNode(kOperation, kCos, NULL, right)
+#define NEWN(number) NewNumber(number)
 
 DifNode_t *NewNumber(double value) {
 
@@ -63,6 +64,7 @@ DifNode_t *CopyNode(DifNode_t *node) {
 
     new_node->operation = node->operation;
     new_node->parent = NULL;
+
     new_node->left = CopyNode(node->left);
     if (new_node->left) {
         new_node->left->parent = new_node;
@@ -77,13 +79,13 @@ DifNode_t *CopyNode(DifNode_t *node) {
 }
 
 
-DifNode_t *Dif(DifNode_t *node, char *main_var) {
+DifNode_t *Dif(DifNode_t *node, const char *main_var) {
     assert(node);
 
     if (node->operation == kNumber) {
         return NewNumber(0);
     } else if (node->operation == kVariable) {
-        if (strcmp(node->value.variable_name, main_var)) {
+        if (strcmp(node->value.variable_name, main_var) == 0) {
             return NewNumber(1);
         } else {
             return NewNumber(0);
@@ -97,14 +99,17 @@ DifNode_t *Dif(DifNode_t *node, char *main_var) {
         case (kMul):
             return ADD_(MUL_(DL, CR), MUL_(CL, DR));
         case (kDiv):
-            return DIV_(SUB_(MUL_(DL, CR), MUL_(CL, DR)), POW_(CR, NewNumber(2)));
+            return DIV_(SUB_(MUL_(DL, CR), MUL_(CL, DR)), POW_(CR, NEWN(2)));
         case (kSin):
             return MUL_(COS_(CR), DR);
         case (kCos):
-            return MUL_(NewNumber(-1), SIN_(DR));
+            return MUL_(NEWN(-1), SIN_(DR));
         case (kTg):
-            return MUL_(DIV_(NewNumber(1), POW_(COS_(CR), NewNumber(2))), DR);
-        
+            return MUL_(DIV_(NEWN(1), POW_(COS_(CR), NEWN(2))), DR);
+        case (kLn):
+            return MUL_(DIV_(NEWN(1), CR), DR);
+        case (kArctg):
+            return MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_((CR), NEWN(2)))), DR);
         default: 
             fprintf(stderr, "No such operation.\n");
             return NULL;

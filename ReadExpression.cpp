@@ -83,12 +83,10 @@ Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
 
     SkipSpaces(buffer, pos);
 
-    printf("%s", buffer + *pos);
     size_t start = *pos;
-    size_t i = start;
     int cnt = 0;
 
-    if (buffer[i] == '\0' || buffer[i] == '\n') {
+    if (buffer[start] == '\0' || buffer[start] == '\n') {
         fprintf(stderr, "Syntax error: empty title at position %zu\n", *pos);
         return NULL;
     }
@@ -106,64 +104,160 @@ Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
     return buffer + start;
 }
 
+static OperationTypes ParseOperator(const char *s) {
+    assert(s);
 
-Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
-    assert(ptr);
-    //assert(node);
+    static OpEntry operations[] = {
+        {"+",     kAdd},
+        {"-",     kSub},
+        {"*",     kMul},
+        {"/",     kDiv},
+        {"tg",    kTg},
+        {"sin",   kSin},
+        {"cos",   kCos},
+        {"ln",    kLn},
+        {"arctg", kArctg},
+        {"pow",   kPow},
+    };
+
+    for (size_t i = 0; i < sizeof(operations)/sizeof(operations[0]); i++) {
+        size_t len = strlen(operations[i].name);
+        if (strncmp(s, operations[i].name, len) == 0) {
+            return operations[i].type;
+        }
+    }
+
+    return kNone;
+}
+
+static int ParseNumber(const char *s, double *out_val) {
+    assert(s);
+    assert(out_val);
+
+    char *end = NULL;
+    double v = strtod(s, &end);
+
+    if (end != s) {
+        *out_val = v;
+        return 1;
+    }
+    return 0;
+}
+
+static void ParseVariable(char *s, VariableInfo *arr, int *i, Value *val) {
+    assert(s);
     assert(arr);
     assert(i);
+    assert(val);
+
+    val->variable_name = s;
+    val->pos_of_variable = (int)s[0];
+
+    arr[*i].variable_name = s;
+    (*i)++;
+}
+
+Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
+    assert(ptr && node && arr && i);
 
     char *s = *ptr;
-    char *endptr = NULL;
-    double val = strtod(s, &endptr);
+    Value *val = (Value *) calloc(1, sizeof(Value));
+    if (!val) return NULL;
 
-    Value *value = (Value *) calloc(1, sizeof(Value));
-    if (!value) return NULL;
-
-    if (s[0] == '+') {
+    OperationTypes op = ParseOperator(s);
+    if (op != kNone) {
         node->operation = kOperation;
-        value->type = kAdd;
-        return value;
-    }
-    if (s[0] == '-') {
-        node->operation = kOperation;
-        value->type = kSub;
-        return value;
-    }
-    if (s[0] == '*') {
-        node->operation = kOperation;
-        value->type = kMul;
-        return value;
-    }
-    if (s[0] == '/') {
-        node->operation = kOperation;
-        value->type = kDiv;
-        return value;
+        val->type = op;
+        return val;
     }
 
-    if (strncmp(s, "tg", sizeof("tg") - 1) == 0) {
-        node->operation = kOperation;
-        value->type = kTg;
-        return value;
-    }
-    else if (endptr != s) {
+    double num = 0;
+    if (ParseNumber(s, &num)) {
         node->operation = kNumber;
-        value->number = val;
-        return value;
+        val->number = num;
+        return val;
     }
 
-    else {
-        node->operation = kVariable;
-        value->pos_of_variable = (int)s[0];
-        value->variable_name = s;
-        arr[(*i) ++].variable_name = s;
-        return value;
-    }
-
-
-    free(value);
-    return NULL;
+    node->operation = kVariable;
+    ParseVariable(s, arr, i, val);
+    return val;
 }
+
+// Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
+//     assert(ptr);
+//     //assert(node);
+//     assert(arr);
+//     assert(i);
+
+//     char *s = *ptr;
+//     char *endptr = NULL;
+//     double val = strtod(s, &endptr);
+
+//     Value *value = (Value *) calloc(1, sizeof(Value));
+//     if (!value) return NULL;
+
+//     if (s[0] == '+') {
+//         node->operation = kOperation;
+//         value->type = kAdd;
+//         return value;
+//     }
+//     if (s[0] == '-') {
+//         node->operation = kOperation;
+//         value->type = kSub;
+//         return value;
+//     }
+//     if (s[0] == '*') {
+//         node->operation = kOperation;
+//         value->type = kMul;
+//         return value;
+//     }
+//     if (s[0] == '/') {
+//         node->operation = kOperation;
+//         value->type = kDiv;
+//         return value;
+//     }
+
+//     if (strncmp(s, "tg", sizeof("tg") - 1) == 0) {
+//         node->operation = kOperation;
+//         value->type = kTg;
+//         return value;
+//     } else if (strncmp(s, "sin", sizeof("sin") - 1) == 0) {
+//         node->operation = kOperation;
+//         value->type = kSin;
+//         return value;
+//     } else if (strncmp(s, "cos", sizeof("cos") - 1) == 0) {
+//         node->operation = kOperation;
+//         value->type = kCos;
+//         return value;
+//     } else if (strncmp(s, "ln", sizeof("ln") - 1) == 0) {
+//         node->operation = kOperation;
+//         value->type = kLn;
+//         return value;
+//     } else if (strncmp(s, "arctg", sizeof("arctg") - 1) == 0) {
+//         node->operation = kOperation;
+//         value->type = kArctg;
+//         return value;
+//     } else if (strncmp(s, "pow", sizeof("pow") - 1) == 0) {
+//         node->operation = kOperation;
+//         value->type = kPow;
+//         return value;        
+//     }
+//     else if (endptr != s) {
+//         node->operation = kNumber;
+//         value->number = val;
+//         return value;
+//     }
+
+//     else {
+//         node->operation = kVariable;
+//         value->pos_of_variable = (int)s[0];
+//         value->variable_name = s;
+//         arr[(*i) ++].variable_name = s;
+//         return value;
+//     }
+
+//     return NULL;
+// }
 
 
 DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *node, Dif_t buffer, DifNode_t **node_to_add, VariableInfo *arr, int *i) {
@@ -196,7 +290,6 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
         new_node->parent = node;
 
         SkipSpaces(buffer, pos);
-        // fprintf(logfile, "\n%s", buffer + *pos);
         DifNode_t *left_child = NULL;
         CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &left_child, arr, i));
         new_node->left = left_child;

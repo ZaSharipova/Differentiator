@@ -20,27 +20,31 @@ static const char *PrintOperationType(const DifNode_t *node) {
         return "OP";
     }
 }
-static const char *PrintExpressionType(const DifNode_t *node) {
+
+static GraphOperation PrintExpressionType(const DifNode_t *node) {
     assert(node);
 
     switch (node->value.type) {
         case (kAdd):
-            return "ADD";
+            return {"ADD", "plum"};
         case (kSub):
-            return "SUB";
+            return {"SUB", "orchid3"};
         case (kMul):
-            return "MUL";
+            return {"MUL", "salmon1"};
         case (kDiv):
-            return "DIV";
+            return {"DIV", "skyblue"};
         case (kPow):
-            return "POW";
+            return {"POW", "darkseagreen3"};
         case (kSin):
-            return "Sin";
+            return {"Sin", "khaki3"};
         case (kCos):
-            return "COS";
+            return {"COS", "cornsilk3"};
         case (kTg):
-            return "TAN";
-        default: return NULL;
+            return {"TAN", "tan"};
+        case (kLn):
+            return {"LOG", "cadetblue1"};
+
+        default: return {NULL, NULL};
     }
 }
 
@@ -49,31 +53,34 @@ void PrintDotNode(FILE *file, const DifNode_t *node, const DifNode_t *node_color
     assert(node);
     assert(node_colored);
 
-    if (node->operation == kNumber) {
+    const char *color_number    = "dodgerblue";
+    const char *color_variable  = "gold";
+
+    if (node->operation == kNumber || node->operation == kVariable) {
         fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Operation: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
-        fprintf(file, "  Value: %lf  \nLeft: %p  Right: %p\" shape=egg color=black width=4 height=1.5 fixedsize=true];\n", 
-                node->value.number, (void *)node->left, (void *)node->right);
-    } else if (node->operation == kVariable) {
-        fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Operation: %s\n", 
-            (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
-        fprintf(file, "  Value: %s  \nLeft: %p  Right: %p\" shape=octagon color=black width=6 height=1.5 fixedsize=true];\n", 
-                node->value.variable_name, (void *)node->left, (void *)node->right);
+        if (node->operation == kNumber) {
+            fprintf(file, "  Value: %lf  \nLeft: %p | Right: %p\" shape=egg color=black fillcolor=%s style=filled width=4 height=1.5 fixedsize=true];\n", 
+                node->value.number, (void *)node->left, (void *)node->right, color_number);
+        } else {
+            fprintf(file, "  Value: %s  \nLeft: %p | Right: %p\" shape=octagon color=black fillcolor=%s style=filled width=4 height=1.5 fixedsize=true];\n", 
+                node->value.variable_name, (void *)node->left, (void *)node->right, color_variable);
+        }
     } else if (node->operation == kOperation) {
         fprintf(file, "    \"%p\" [label=\"{Parent: %p \n | Addr: %p \n | Operation: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
-        fprintf(file, " | Value: %s | {Left: %p | Right: %p}}\" shape=Mrecord color=black];\n", 
-                PrintExpressionType(node), (void *)node->left, (void *)node->right);
+        fprintf(file, " | Value: %s | {Left: %p | Right: %p}}\" shape=Mrecord color=black fillcolor=%s, style=filled];\n", 
+                PrintExpressionType(node).operation_name, (void *)node->left, (void *)node->right, PrintExpressionType(node).color);
     }
 
     if (node->left) {
-        fprintf(file, "    \"%p\" -> \"%p\" [label=\"да\", fontsize=15, fontcolor=darkgreen, labeldistance=2.0, labelangle=45, color=darkolivegreen2];\n", 
+        fprintf(file, "    \"%p\" -> \"%p\";\n", 
                 (void *)node, (void *)node->left);
         PrintDotNode(file, node->left, node_colored, flag);
     }
 
     if (node->right) {
-        fprintf(file, "    \"%p\" -> \"%p\" [label=\"нет\", fontsize=15, fontcolor=darkred, labeldistance=2.0, labelangle=45, color=coral1];\n\n", 
+        fprintf(file, "    \"%p\" -> \"%p\";\n\n", 
                 (void *)node, (void *)node->right);
         PrintDotNode(file, node->right, node_colored, flag);
     }

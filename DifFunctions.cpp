@@ -55,12 +55,12 @@ static double FindVariableValue(VariableInfo *arr, char *var_name) {
         if (strcmp(arr[i].variable_name, var_name) == 0) {
             return arr[i].variable_value;
         }
-        if (arr[i].variable_name == "\0") {
+        if (strcmp(arr[i].variable_name, "\0")) {
             break;
         }
     }
     
-    return VARIABLE_NOT_FOUND;
+    return 0;
 }
 
 static double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
@@ -105,6 +105,8 @@ static double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
 
         case kTg:
             return tan(EvaluateExpression(node->right, arr));
+        case (kLn):
+            return log(EvaluateExpression(node->right, arr));
 
         default:
             fprintf(stderr, "Unknown operation: %d.\n", node->value.type);
@@ -126,6 +128,9 @@ DifErrors DeleteNode(DifNode_t *node) {
         DeleteNode(node->right);
         node->right = NULL;
     }
+
+    // if (&node->value)
+    //     free(&node->value);
     free(node);
 
     return kSuccess;

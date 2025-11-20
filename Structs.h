@@ -54,4 +54,14 @@ struct VariableInfo {
     double variable_value;
 };
 
+typedef struct {
+    const char *name;
+    OperationTypes type;
+} OpEntry;
+
+struct GraphOperation {
+    const char *operation_name;
+    const char *color;
+};
+
 #endif //STRUCTS_H_

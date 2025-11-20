@@ -27,6 +27,9 @@ enum OperationTypes {
     kSin,
     kCos,
     kTg,
+    kLn,
+    kArctg,
+    kNone,
 };
 
 #endif //ENUMS_H_

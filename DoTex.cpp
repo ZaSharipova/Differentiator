@@ -81,7 +81,10 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
-
+            case kLn:
+                fprintf(out, "\\log{(");
+                DoTexInner(node->right, out);
+                fprintf(out, ")}");
             default:
                 fprintf(out, "?");
                 break;
@@ -89,7 +92,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
     }
 }
 
-void DoTex(DifNode_t *node, char *value) {
+void DoTex(DifNode_t *node, const char *value) {
     assert(node);
     FILE *out = fopen("diftex.tex", "w");
     fprintf(out, "\\documentclass{article}\n\\begin{document}\n\\fontsize{30}{36}\\selectfont\n\\[\n");
