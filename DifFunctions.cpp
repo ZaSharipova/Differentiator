@@ -72,19 +72,19 @@ static double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
          return FindVariableValue(arr, node->value.variable_name);
     } else {
         switch (node->value.type) {
-        case kAdd:
+        case (kAdd):
             return EvaluateExpression(node->left, arr) +
                 EvaluateExpression(node->right, arr);
 
-        case kSub:
+        case (kSub):
             return EvaluateExpression(node->left, arr) -
                 EvaluateExpression(node->right, arr);
 
-        case kMul:
+        case (kMul):
             return EvaluateExpression(node->left, arr) *
                 EvaluateExpression(node->right, arr);
 
-        case kDiv: {
+        case (kDiv): {
             double right = EvaluateExpression(node->right, arr);
             if (right < 1e-12) {
                 fprintf(stderr, "Division by zero.\n");
@@ -93,21 +93,24 @@ static double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
             return EvaluateExpression(node->left, arr) / right;
         }
 
-        case kPow:
+        case (kPow):
             return pow(EvaluateExpression(node->left, arr),
                     EvaluateExpression(node->right, arr));
 
-        case kSin:
+        case (kSin):
             return sin(EvaluateExpression(node->right, arr));
 
-        case kCos:
+        case (kCos):
             return cos(EvaluateExpression(node->right, arr));
 
-        case kTg:
+        case (kTg):
             return tan(EvaluateExpression(node->right, arr));
         case (kLn):
             return log(EvaluateExpression(node->right, arr));
+        case (kArctg):
+            return atan(EvaluateExpression(node->right, arr));
 
+        case (kNone):
         default:
             fprintf(stderr, "Unknown operation: %d.\n", node->value.type);
             return 0;

@@ -24,7 +24,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
 
     if (node->operation == kOperation) {
         switch (node->value.type) {
-            case kAdd:
+            case (kAdd):
                 fprintf(out, "(");
                 DoTexInner(node->left, out);
                 fprintf(out, " + ");
@@ -32,7 +32,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, ")");
                 break;
 
-            case kSub:
+            case (kSub):
                 fprintf(out, "(");
                 DoTexInner(node->left, out);
                 fprintf(out, " - ");
@@ -40,7 +40,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, ")");
                 break;
 
-            case kMul:
+            case (kMul):
                 fprintf(out, "(");
                 DoTexInner(node->left, out);
                 fprintf(out, "\\cdot ");
@@ -48,7 +48,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, ")");
                 break;
 
-            case kDiv:
+            case (kDiv):
                 fprintf(out, "\\frac{");
                 DoTexInner(node->left, out);
                 fprintf(out, "}{");
@@ -56,7 +56,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, "}");
                 break;
 
-            case kPow:
+            case (kPow):
                 fprintf(out, "{");
                 DoTexInner(node->left, out);
                 fprintf(out, "}^{");
@@ -64,27 +64,32 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, "}");
                 break;
 
-            case kSin:
+            case (kSin):
                 fprintf(out, "\\sin{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
 
-            case kCos:
+            case (kCos):
                 fprintf(out, "\\cos{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
 
-            case kTg:
+            case (kTg):
                 fprintf(out, "\\tan{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
-            case kLn:
+            case (kLn):
                 fprintf(out, "\\log{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
+            case (kArctg):
+                fprintf(out, "\\arctan{(");
+                DoTexInner(node->right, out);
+                fprintf(out, ")}");
+            case (kNone):
             default:
                 fprintf(out, "?");
                 break;

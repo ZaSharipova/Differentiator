@@ -183,145 +183,95 @@ Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     return val;
 }
 
-// Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
-//     assert(ptr);
-//     //assert(node);
-//     assert(arr);
-//     assert(i);
 
-//     char *s = *ptr;
-//     char *endptr = NULL;
-//     double val = strtod(s, &endptr);
-
-//     Value *value = (Value *) calloc(1, sizeof(Value));
-//     if (!value) return NULL;
-
-//     if (s[0] == '+') {
-//         node->operation = kOperation;
-//         value->type = kAdd;
-//         return value;
-//     }
-//     if (s[0] == '-') {
-//         node->operation = kOperation;
-//         value->type = kSub;
-//         return value;
-//     }
-//     if (s[0] == '*') {
-//         node->operation = kOperation;
-//         value->type = kMul;
-//         return value;
-//     }
-//     if (s[0] == '/') {
-//         node->operation = kOperation;
-//         value->type = kDiv;
-//         return value;
-//     }
-
-//     if (strncmp(s, "tg", sizeof("tg") - 1) == 0) {
-//         node->operation = kOperation;
-//         value->type = kTg;
-//         return value;
-//     } else if (strncmp(s, "sin", sizeof("sin") - 1) == 0) {
-//         node->operation = kOperation;
-//         value->type = kSin;
-//         return value;
-//     } else if (strncmp(s, "cos", sizeof("cos") - 1) == 0) {
-//         node->operation = kOperation;
-//         value->type = kCos;
-//         return value;
-//     } else if (strncmp(s, "ln", sizeof("ln") - 1) == 0) {
-//         node->operation = kOperation;
-//         value->type = kLn;
-//         return value;
-//     } else if (strncmp(s, "arctg", sizeof("arctg") - 1) == 0) {
-//         node->operation = kOperation;
-//         value->type = kArctg;
-//         return value;
-//     } else if (strncmp(s, "pow", sizeof("pow") - 1) == 0) {
-//         node->operation = kOperation;
-//         value->type = kPow;
-//         return value;        
-//     }
-//     else if (endptr != s) {
-//         node->operation = kNumber;
-//         value->number = val;
-//         return value;
-//     }
-
-//     else {
-//         node->operation = kVariable;
-//         value->pos_of_variable = (int)s[0];
-//         value->variable_name = s;
-//         arr[(*i) ++].variable_name = s;
-//         return value;
-//     }
-
-//     return NULL;
-// }
-
-
-DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *node, Dif_t buffer, DifNode_t **node_to_add, VariableInfo *arr, int *i) {
+static DifErrors ParseMainNode(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, Dif_t buffer,
+    DifNode_t **node_to_add, VariableInfo *arr, int *i) {
     assert(tree);
     assert(file);
     assert(logfile);
-    //assert(node);
     assert(pos);
     assert(arr);
     assert(i);
-    //assert(node_to_add);
 
     DifErrors err = kSuccess;
+    tree->size++;
+    DifNode_t *new_node = NULL;
+    NodeCtor(&new_node, NULL);
+
+    (*pos)++;
+    Dif_t char_to_convert = ReadTitle(logfile, buffer, pos);
+
+    Value *val_ptr = Convert(&char_to_convert, new_node, arr, i);
+    if (!val_ptr) {
+        fprintf(stderr, "Conversion error.\n");
+        return kSyntaxError;
+    }
+
+    new_node->value = *val_ptr;
+    free(val_ptr);
+    new_node->parent = parent;
+
+    SkipSpaces(buffer, pos);
+    DifNode_t *left_child = NULL;
+    CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &left_child, arr, i));
+    new_node->left = left_child;
+
+    SkipSpaces(buffer, pos);
+    DifNode_t *right_child = NULL;
+    CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &right_child, arr, i));
+    new_node->right = right_child;
+
+    SkipSpaces(buffer, pos);
+    if (buffer[*pos] != ')') {
+        fprintf(stderr, "Syntax error: expected ')'\n");
+        return kSyntaxError;
+    }
+
+    (*pos)++;
+    *node_to_add = new_node;
+    return kSuccess;
+}
+
+static DifErrors ParseNilNode(size_t *pos, DifNode_t **node_to_add) {
+    assert(pos);
+    assert(node_to_add);
+
+    *pos += strlen("nil");
+    *node_to_add = NULL;
+    return kSuccess;
+}
+
+static DifErrors SyntaxErrorNode(size_t pos, char c) {
+
+    fprintf(stderr, "Syntax error in %zu '%c'\n", pos, c);
+    return kSyntaxError;
+}
+
+
+
+DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, 
+    Dif_t buffer, DifNode_t **node_to_add, VariableInfo *arr, int *i) {
+    assert(tree);
+    assert(file);
+    assert(logfile);
+    assert(pos);
+    assert(arr);
+    assert(i);
+
     SkipSpaces(buffer, pos);
     fprintf(logfile, "\n%s", buffer + *pos);
 
     if (buffer[*pos] == '(') {
-        tree->size ++;
-        DifNode_t *new_node = NULL;
-        NodeCtor(&new_node, NULL);
-        (*pos)++;
-        Dif_t char_to_convert = ReadTitle(logfile, buffer, pos);
-        Value *val_ptr = Convert(&char_to_convert, new_node, arr, i);
-        if (!val_ptr) {
-            fprintf(stderr, "Conversion error.\n");
-            return kSyntaxError;
-        }
-        new_node->value = *val_ptr;
-        free(val_ptr);
-        new_node->parent = node;
-
-        SkipSpaces(buffer, pos);
-        DifNode_t *left_child = NULL;
-        CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &left_child, arr, i));
-        new_node->left = left_child;
-
-        SkipSpaces(buffer, pos);
-        DifNode_t *right_child = NULL;
-        CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &right_child, arr, i));
-        new_node->right = right_child;
-
-        SkipSpaces(buffer, pos);
-        if (buffer[*pos] == ')') {
-            buffer[*pos] = '\0';
-            (*pos)++;
-        } else {
-            fprintf(stderr, "Syntax error: expected ')'\n");
-            return kSyntaxError;
-        }
-        *node_to_add = new_node;
-        return kSuccess;
-
-    } else if (strncmp(buffer + *pos, "nil", sizeof("nil") - 1) == 0) {
-        *pos += strlen("nil");
-        *node_to_add = NULL;
-        return kSuccess;
-
-    } else {
-        fprintf(stderr, "Syntax error in %zu '%c'\n", *pos, buffer[*pos]);
-        return kSyntaxError;
+        return ParseMainNode(tree, file, logfile, pos, parent, buffer, node_to_add, arr, i);
     }
 
-    return kSuccess;
+    if (strncmp(buffer + *pos, "nil", sizeof("nil") - 1) == 0) {
+        return ParseNilNode(pos, node_to_add);
+    }
+
+    return SyntaxErrorNode(*pos, buffer[*pos]);
 }
+
 
 void ReadVariableValue(int size, VariableInfo *arr) {
     assert(arr);

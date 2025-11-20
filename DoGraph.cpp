@@ -43,7 +43,9 @@ static GraphOperation PrintExpressionType(const DifNode_t *node) {
             return {"TAN", "tan"};
         case (kLn):
             return {"LOG", "cadetblue1"};
-
+        case (kArctg):
+            return {"ARCTG", "lightgoldenrod"};
+        case (kNone):
         default: return {NULL, NULL};
     }
 }

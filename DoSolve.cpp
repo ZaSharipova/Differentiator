@@ -19,7 +19,7 @@
 #define MUL_(left, right) NewNode(kOperation, kMul, left, right) 
 #define DIV_(left, right) NewNode(kOperation, kDiv, left, right) 
 #define POW_(left, right) NewNode(kOperation, kPow, left, right)
-#define SIN_(right) NewNode(kOperation, kCos, NULL, right)
+#define SIN_(right) NewNode(kOperation, kSin, NULL, right)
 #define COS_(right) NewNode(kOperation, kCos, NULL, right)
 #define NEWN(number) NewNumber(number)
 
@@ -29,7 +29,6 @@ DifNode_t *NewNumber(double value) {
     NodeCtor(&new_node, NULL);
 
     new_node->operation = kNumber;
-
     new_node->value.number = value;
 
     return new_node;
@@ -103,16 +102,31 @@ DifNode_t *Dif(DifNode_t *node, const char *main_var) {
         case (kSin):
             return MUL_(COS_(CR), DR);
         case (kCos):
-            return MUL_(NEWN(-1), SIN_(DR));
+            return MUL_(MUL_(NEWN(-1), SIN_(CR)), DR);
         case (kTg):
             return MUL_(DIV_(NEWN(1), POW_(COS_(CR), NEWN(2))), DR);
         case (kLn):
             return MUL_(DIV_(NEWN(1), CR), DR);
         case (kArctg):
             return MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_((CR), NEWN(2)))), DR);
+        case (kPow):
+        case (kNone):
         default: 
             fprintf(stderr, "No such operation.\n");
             return NULL;
         }
     }
 }
+
+#undef CL
+#undef CR
+#undef DL
+#undef DR
+#undef ADD_
+#undef SUB_
+#undef MUL_
+#undef DIV_
+#undef POW_
+#undef SIN_
+#undef COS_
+#undef NEWN
