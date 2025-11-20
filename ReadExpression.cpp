@@ -148,38 +148,35 @@ static void ParseVariable(char *s, VariableInfo *arr, int *i, Value *val) {
     assert(s);
     assert(arr);
     assert(i);
-    assert(val);
 
-    val->variable_name = s;
-    val->pos_of_variable = (int)s[0];
+    (*val).variable_name = s;
 
     arr[*i].variable_name = s;
     (*i)++;
 }
 
-Value *Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
+Value Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     assert(ptr && node && arr && i);
 
     char *s = *ptr;
-    Value *val = (Value *) calloc(1, sizeof(Value));
-    if (!val) return NULL;
+    Value val = {};
 
     OperationTypes op = ParseOperator(s);
     if (op != kNone) {
         node->operation = kOperation;
-        val->type = op;
+        val.type = op;
         return val;
     }
 
     double num = 0;
     if (ParseNumber(s, &num)) {
         node->operation = kNumber;
-        val->number = num;
+        val.number = num;
         return val;
     }
 
     node->operation = kVariable;
-    ParseVariable(s, arr, i, val);
+    ParseVariable(s, arr, i, &val);
     return val;
 }
 
@@ -201,14 +198,14 @@ static DifErrors ParseMainNode(DifRoot *tree, FILE *file, FILE *logfile, size_t 
     (*pos)++;
     Dif_t char_to_convert = ReadTitle(logfile, buffer, pos);
 
-    Value *val_ptr = Convert(&char_to_convert, new_node, arr, i);
-    if (!val_ptr) {
-        fprintf(stderr, "Conversion error.\n");
-        return kSyntaxError;
-    }
+    Value val_ptr = Convert(&char_to_convert, new_node, arr, i);
+    // if (!val_ptr) {
+    //     fprintf(stderr, "Conversion error.\n");
+    //     return kSyntaxError;
+    // }
 
-    new_node->value = *val_ptr;
-    free(val_ptr);
+    new_node->value = val_ptr;
+    // free(val_ptr);
     new_node->parent = parent;
 
     SkipSpaces(buffer, pos);
@@ -246,7 +243,6 @@ static DifErrors SyntaxErrorNode(size_t pos, char c) {
     fprintf(stderr, "Syntax error in %zu '%c'\n", pos, c);
     return kSyntaxError;
 }
-
 
 
 DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, 

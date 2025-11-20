@@ -43,6 +43,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
             case (kMul):
                 fprintf(out, "(");
                 DoTexInner(node->left, out);
+                
                 fprintf(out, "\\cdot ");
                 DoTexInner(node->right, out);
                 fprintf(out, ")");
@@ -100,8 +101,11 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
 void DoTex(DifNode_t *node, const char *value) {
     assert(node);
     FILE *out = fopen("diftex.tex", "w");
-    fprintf(out, "\\documentclass{article}\n\\begin{document}\n\\fontsize{30}{36}\\selectfont\n\\[\n");
-    fprintf(out, "\\frac{d}{d%s} = ", value);
+    fprintf(out, "\\documentclass{article}\n");
+    fprintf(out, "\\usepackage{multirow}\n");
+    fprintf(out, "\\usepackage{amsmath}\n\\usepackage[left=2cm, top=2cm, right=2cm, bottom=2cm]{geometry}\n\n");
+    fprintf(out, "\\begin{document}\n\\fontsize{30}{36}\\selectfont\n\\[\n");
+    fprintf(out, "\\frac{df}{d%s} = ", value);
     DoTexInner(node, out);
     fprintf(out, "\n");
     fprintf(out, "\\]\n\\end{document}");

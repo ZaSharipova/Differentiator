@@ -22,9 +22,8 @@ DifErrors NodeCtor(DifNode_t **node, Value *value) {
 
     if (value) {
         (*node)->value = *value; 
-    } else {
-        memset(&(*node)->value, 0, sizeof(Value));
-    }
+    } 
+    
     (*node)->left =  NULL;
     (*node)->right =  NULL;
     (*node)->parent = NULL;

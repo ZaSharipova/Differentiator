@@ -9,7 +9,19 @@
 #include "Structs.h"
 #include "DifFunctions.h"
 
+static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var);
+static DifNode_t *DoCountPowDerivative(DifNode_t *node, const char *main_var);
+
+static DifNode_t *NewNumber(double value);
+static DifNode_t *NewNode(DifTypes dif_type, OperationTypes op_type, DifNode_t *left, DifNode_t *right);
+
+static DifNode_t *NewOperationNode(OperationTypes op, DifNode_t *left, DifNode_t *right);
+static DifNode_t *NewNumberNode(double number, DifNode_t *parent);
+
 #define DEFAULT_NUMBER NULL
+
+
+#define PR node->parent
 #define CL CopyNode(node->left)
 #define CR CopyNode(node->right)
 #define DL Dif(node->left, main_var)
@@ -21,7 +33,8 @@
 #define POW_(left, right) NewNode(kOperation, kPow, left, right)
 #define SIN_(right) NewNode(kOperation, kSin, NULL, right)
 #define COS_(right) NewNode(kOperation, kCos, NULL, right)
-#define NEWN(number) NewNumber(number)
+#define LN_(right) NewNode(kOperation, kLn, NULL, right)
+#define NEWN(number) NewNumberNode(number, node)
 
 DifNode_t *NewNumber(double value) {
 
@@ -35,8 +48,7 @@ DifNode_t *NewNumber(double value) {
 }
 
 DifNode_t *NewNode(DifTypes dif_type, OperationTypes op_type, DifNode_t *left, DifNode_t *right) {
-    // assert(left);
-    // assert(right);
+    assert(right);
 
     DifNode_t *new_node = NULL;
     NodeCtor(&new_node, NULL);
@@ -47,10 +59,34 @@ DifNode_t *NewNode(DifTypes dif_type, OperationTypes op_type, DifNode_t *left, D
     new_node->left = left;
     new_node->right = right;
 
+    if (left) {
+        left->parent = new_node;
+    }
+    if (right) {
+        right->parent = new_node;
+    }
+
     return new_node;
 }
 
-DifNode_t *CopyNode(DifNode_t *node) {
+static DifNode_t *NewOperationNode(OperationTypes op, DifNode_t *left, DifNode_t *right) {
+    DifNode_t *new_node = NewNode(kOperation, op, NULL, NULL);
+    new_node->left = left;
+    new_node->right = right;
+
+    if (left) left->parent = new_node;
+    if (right) right->parent = new_node;
+
+    return new_node;
+}
+
+static DifNode_t *NewNumberNode(double number, DifNode_t *parent) {
+    DifNode_t *new_node = NewNumber(number);
+    new_node->parent = parent;
+    return new_node;
+}
+
+static DifNode_t *CopyNode(DifNode_t *node) {
     if (node == NULL) {
         return NULL;
     }
@@ -79,7 +115,9 @@ DifNode_t *CopyNode(DifNode_t *node) {
 
 
 DifNode_t *Dif(DifNode_t *node, const char *main_var) {
-    assert(node);
+    assert(node); // количества вершин ради передавать указатель полностью на дерево
+
+    DifNode_t *new_node = NULL;
 
     if (node->operation == kNumber) {
         return NewNumber(0);
@@ -110,10 +148,55 @@ DifNode_t *Dif(DifNode_t *node, const char *main_var) {
         case (kArctg):
             return MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_((CR), NEWN(2)))), DR);
         case (kPow):
+            return (DoCountPowDerivative(node, main_var));
         case (kNone):
         default: 
             fprintf(stderr, "No such operation.\n");
             return NULL;
+        }
+    }
+}
+
+
+static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var) {
+    if (!node) {
+        return kSuccess;
+    }
+
+    assert(main_var);
+
+    if (!(*node_with_main_var)) {
+        if (node->operation == kVariable && strcmp(node->value.variable_name, main_var) == 0) {
+            *node_with_main_var = node;
+            return kSuccess;
+        } else {
+            FindMainVar(node->left, main_var, node_with_main_var);
+            FindMainVar(node->right, main_var, node_with_main_var);
+        }
+    }
+    return kSuccess;
+}
+
+static DifNode_t *DoCountPowDerivative(DifNode_t *node, const char *main_var) {
+    assert(node);
+
+    DifNode_t *node_left_main = NULL;
+    FindMainVar(node->left, main_var, &node_left_main);
+    
+    DifNode_t *node_right_main = NULL;
+    FindMainVar(node->right, main_var, &node_right_main);
+
+    if (!node_left_main) {
+        if (!node_right_main) {
+            return NEWN(0);
+        } else {
+            return MUL_(MUL_(POW_(CL, CR), LN_(CR)), DR);
+        }
+    }  else {
+        if (!node_right_main) {
+            return MUL_(MUL_(CR, POW_(CL, SUB_(CR, NEWN(1)))), DL);
+        } else {
+            return MUL_(POW_(CL, CR), Dif(MUL_(LN_(CL), CR), main_var));
         }
     }
 }
@@ -129,4 +212,5 @@ DifNode_t *Dif(DifNode_t *node, const char *main_var) {
 #undef POW_
 #undef SIN_
 #undef COS_
+#undef LN_
 #undef NEWN

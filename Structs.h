@@ -8,11 +8,10 @@
 
 typedef char* Dif_t;
 
-struct Value {
+union Value {
     OperationTypes type;
     double number;
     char *variable_name;
-    int pos_of_variable;
 };
 
 struct FileInfo {
@@ -22,7 +21,7 @@ struct FileInfo {
 
 struct DifNode_t {
     DifTypes operation;
-    struct Value value;
+    union Value value;
     DifNode_t *parent;
     DifNode_t *left;
     DifNode_t *right;

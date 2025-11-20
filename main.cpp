@@ -41,15 +41,15 @@ int main(void) {
     DifRoot root2 = {};
     root2.root = new_tree;
     DumpInfo.tree = &root2;
+
     strcpy(DumpInfo.message, " Do derivative");
     DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
     DoDump(&DumpInfo);
     DoTex(root2.root, "x");
 
     ReadVariableValue(i, Variable_Array);
-    
     double res = SolveEquation(&root, Variable_Array);
-    printf("%lf", res);
+    printf("Результат вычисления выражения: %lf", res);
     free(Variable_Array);
 
     fclose(file);
