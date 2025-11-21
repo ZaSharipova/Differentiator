@@ -4,6 +4,8 @@
 #include "Enums.h"
 #include "Structs.h"
 
-void DoTex(DifNode_t *node, const char *value);
+void BeginTex(FILE *out);
+void EndTex(FILE *out);
+void DoTex(DifNode_t *node, const char *value, FILE *out, bool is_last);
 
 #endif //DO_TEX_H_

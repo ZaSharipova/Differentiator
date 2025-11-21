@@ -11,6 +11,7 @@
 
 #include "DoGraph.h"
 #include "DoDump.h"
+#include "DoTex.h"
 
 
 #define eps 1e-11
@@ -23,7 +24,7 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change);
 
 #define NEWN(number) NewNumber(number)
 
-DifErrors OptimiseTree(DifNode_t *node, VariableInfo *arr) {
+DifErrors OptimiseTree(DifNode_t *node, VariableInfo *arr, FILE *out) {
     assert(node);
     assert(arr);
 
@@ -31,7 +32,8 @@ DifErrors OptimiseTree(DifNode_t *node, VariableInfo *arr) {
 
     while (true) {
         has_change = false;
-        node = ConstOptimise(node, arr, &has_change); // NULL
+        node = ConstOptimise(node, arr, &has_change); 
+        DoTex(node, "x", out, false);// NULL
         node = EraseNeutralElements(node, arr, &has_change);
         if (has_change == false) {
             break;
@@ -94,32 +96,29 @@ DifNode_t *EraseNeutralElements(DifNode_t *node, VariableInfo *arr, bool *has_ch
     assert(has_change);
 
     if (node->left) {
-        node->left = EraseNeutralElements(node, arr, has_change);
+        node->left = EraseNeutralElements(node->left, arr, has_change);
     }
 
     if (node->right) {
-        node->right = EraseNeutralElements(node, arr, has_change);
+        node->right = EraseNeutralElements(node->right, arr, has_change);
     }
 
-    if ((!node->left && !node->right) || !(node->operation == kOperation)) {
+    if ((!node->left || !node->right) || !(node->operation == kOperation)) {
         return node;
     }
 
     OperationTypes operation = node->value.type;
 
-    switch (operation) {
-        case (kAdd):
-            return AddOptimise(node, has_change);
-        case (kSub):
-            return SubOptimise(node, has_change);
-        case (kMul):
-            return MulOptimise(node, has_change);
-        case (kDiv):
-            return DivOptimise(node, has_change);
-        case (kPow):
-            return PowOptimise(node, has_change);
-        default:
-            return node;
+    if (operation == kAdd) {
+        return AddOptimise(node, has_change);
+    } else if (operation == kSub) {
+        return SubOptimise(node, has_change);
+    } else if (operation == kMul) {
+        return MulOptimise(node, has_change);
+    } else if (operation == kDiv) {
+        return DivOptimise(node, has_change);
+    } else if (operation == kPow) {
+        return PowOptimise(node, has_change);
     }
 
     return node;
@@ -139,7 +138,7 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
         return copied_node;
     }
 
-    if (fabs((*(node->left)).value.number) < eps) {
+    if (node->right->operation == kNumber && fabs((*(node->right)).value.number) < eps) {
         copied_node = CopyNode(node->left);
         *has_change = true;
         DeleteNode(node);
@@ -230,13 +229,13 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
         return NEWN(0);
     }
 
-    if (node->right->operation == kNumber && fabs((*(node->left)).value.number) < eps) {
+    if (node->right->operation == kNumber && fabs((*(node->right)).value.number) < eps) {
         DeleteNode(node);
         *has_change = true;
         return NEWN(1);
     }
 
-    if (node->right->operation == kNumber && fabs((*(node->left)).value.number - 1) < eps) {
+    if (node->right->operation == kNumber && fabs((*(node->right)).value.number - 1) < eps) {
         DifNode_t *new_node = CopyNode(node->left);
         DeleteNode(node);
         *has_change = true;

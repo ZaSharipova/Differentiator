@@ -98,8 +98,6 @@ DifNode_t *CopyNode(DifNode_t *node) {
 DifNode_t *Dif(DifNode_t *node, const char *main_var) {
     assert(node); // количества вершин ради передавать указатель полностью на дерево
 
-    DifNode_t *new_node = NULL;
-
     if (node->operation == kNumber) {
         return NewNumber(0);
     } else if (node->operation == kVariable) {

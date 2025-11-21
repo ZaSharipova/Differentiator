@@ -86,10 +86,12 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, "\\log{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
+                break;
             case (kArctg):
                 fprintf(out, "\\arctan{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
+                break;
             case (kNone):
             default:
                 fprintf(out, "?");
@@ -98,16 +100,27 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
     }
 }
 
-void DoTex(DifNode_t *node, const char *value) {
-    assert(node);
-    FILE *out = fopen("diftex.tex", "w");
+void BeginTex(FILE *out) {
+    assert(out);
+
     fprintf(out, "\\documentclass{article}\n");
-    fprintf(out, "\\usepackage{multirow}\n");
     fprintf(out, "\\usepackage{amsmath}\n\\usepackage[left=2cm, top=2cm, right=2cm, bottom=2cm]{geometry}\n\n");
-    fprintf(out, "\\begin{document}\n\\fontsize{30}{36}\\selectfont\n\\[\n");
-    fprintf(out, "\\frac{df}{d%s} = ", value);
+    fprintf(out, "\\begin{document}\n\\fontsize{15}{18}\\selectfont\n");
+    fprintf(out, "\n\\begin{align*}\n");
+}
+
+void EndTex(FILE *out) {
+    assert(out);
+    fprintf(out, "\n\\end{align*}\n");
+    fprintf(out, "\n\\end{document}");
+}
+
+void DoTex(DifNode_t *node, const char *value, FILE *out, bool is_last) {
+    assert(node);
+    assert(out);
+
+    // fprintf(out, "\n\\[\n");
+    fprintf(out, "\\frac{df}{d%s} &= ", value);
     DoTexInner(node, out);
-    fprintf(out, "\n");
-    fprintf(out, "\\]\n\\end{document}");
-    fclose(out);
+    if (!is_last) fprintf(out, " \\\\ \n");
 }

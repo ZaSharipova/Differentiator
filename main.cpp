@@ -48,17 +48,22 @@ int main(void) {
     strcpy(DumpInfo.message, " Do derivative");
     DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
     DoDump(&DumpInfo);
-    DoTex(root2.root, "x");
+    FILE *out = fopen("diftex.tex", "w");
+    BeginTex(out);
+    DoTex(root2.root, "x", out, false);
 
-    OptimiseTree(root2.root, Variable_Array);
+    OptimiseTree(root2.root, Variable_Array, out);
     DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
     DoDump(&DumpInfo);
+    DoTex(root2.root, "x", out, true);
 
     ReadVariableValue(i, Variable_Array);
     double res = SolveEquation(&root, Variable_Array);
     printf("Результат вычисления выражения: %lf", res);
     free(Variable_Array);
 
+    EndTex(out);
+    fclose(out);
     fclose(file);
     fclose(logfile);
 
