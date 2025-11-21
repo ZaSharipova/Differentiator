@@ -36,8 +36,11 @@ char *ReadToBuf(const char *filename, FILE *file, size_t filesize) {
     assert(filename);
     assert(file);
 
-    char *buf_in = (char *) calloc(filesize + 2, sizeof(char));
-    assert(buf_in != NULL);
+    char *buf_in = (char *) calloc (filesize + 2, sizeof(char));
+    if (!buf_in) {
+        fprintf(stderr, "ERROR while calloc.\n");
+        return NULL;
+    }
 
     size_t bytes_read = fread(buf_in, sizeof(buf_in[0]), filesize, file);
     if (bytes_read == 0) {
@@ -104,8 +107,8 @@ Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
     return buffer + start;
 }
 
-static OperationTypes ParseOperator(const char *s) {
-    assert(s);
+static OperationTypes ParseOperator(const char *stroke) {
+    assert(stroke);
 
     static OpEntry operations[] = {
         {"+",     kAdd},
@@ -120,9 +123,11 @@ static OperationTypes ParseOperator(const char *s) {
         {"pow",   kPow},
     };
 
-    for (size_t i = 0; i < sizeof(operations)/sizeof(operations[0]); i++) {
+    size_t op_size = sizeof(operations)/sizeof(operations[0]);
+
+    for (size_t i = 0; i < op_size; i++) {
         size_t len = strlen(operations[i].name);
-        if (strncmp(s, operations[i].name, len) == 0) {
+        if (strncmp(stroke, operations[i].name, len) == 0) {
             return operations[i].type;
         }
     }
@@ -130,38 +135,38 @@ static OperationTypes ParseOperator(const char *s) {
     return kNone;
 }
 
-static int ParseNumber(const char *s, double *out_val) {
-    assert(s);
+static int ParseNumber(const char *stroke, double *out_val) {
+    assert(stroke);
     assert(out_val);
 
     char *end = NULL;
-    double v = strtod(s, &end);
+    double v = strtod(stroke, &end);
 
-    if (end != s) {
+    if (end != stroke) {
         *out_val = v;
         return 1;
     }
     return 0;
 }
 
-static void ParseVariable(char *s, VariableInfo *arr, int *i, Value *val) {
-    assert(s);
+static void ParseVariable(char *stroke, VariableInfo *arr, int *i, Value *val) {
+    assert(stroke);
     assert(arr);
     assert(i);
 
-    (*val).variable_name = s;
+    (*val).variable_name = stroke;
 
-    arr[*i].variable_name = s;
+    arr[*i].variable_name = stroke;
     (*i)++;
 }
 
 Value Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     assert(ptr && node && arr && i);
 
-    char *s = *ptr;
+    char *stroke = *ptr;
     Value val = {};
 
-    OperationTypes op = ParseOperator(s);
+    OperationTypes op = ParseOperator(stroke);
     if (op != kNone) {
         node->operation = kOperation;
         val.type = op;
@@ -169,14 +174,14 @@ Value Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     }
 
     double num = 0;
-    if (ParseNumber(s, &num)) {
+    if (ParseNumber(stroke, &num)) {
         node->operation = kNumber;
         val.number = num;
         return val;
     }
 
     node->operation = kVariable;
-    ParseVariable(s, arr, i, &val);
+    ParseVariable(stroke, arr, i, &val);
     return val;
 }
 
@@ -255,7 +260,7 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
     assert(i);
 
     SkipSpaces(buffer, pos);
-    fprintf(logfile, "\n%s", buffer + *pos);
+    fprintf(logfile, "\n%stroke", buffer + *pos);
 
     if (buffer[*pos] == '(') {
         return ParseMainNode(tree, file, logfile, pos, parent, buffer, node_to_add, arr, i);

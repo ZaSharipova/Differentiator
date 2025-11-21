@@ -111,12 +111,14 @@ void BeginTex(FILE *out) {
 
 void EndTex(FILE *out) {
     assert(out);
+
     fprintf(out, "\n\\end{align*}\n");
     fprintf(out, "\n\\end{document}");
 }
 
 void DoTex(DifNode_t *node, const char *value, FILE *out, bool is_last) {
     assert(node);
+    assert(value);
     assert(out);
 
     // fprintf(out, "\n\\[\n");

@@ -7,6 +7,7 @@
 #include "Enums.h"
 #include "Structs.h"
 #define FILE_OUT "output.txt"
+#define MAX_COMMAND_SIZE 50
 
 static const char *PrintOperationType(const DifNode_t *node) {
     assert(node);
@@ -94,8 +95,8 @@ static void DoSnprintf(DumpInfo *Info) {
     assert(Info);
 
     snprintf(Info->image_file, sizeof(Info->image_file), "Images/graph_%zu.svg", Info->graph_counter);
-    (Info->graph_counter)++;
-    char cmd[50] = {};
+    Info->graph_counter ++;
+    char cmd[MAX_COMMAND_SIZE] = {};
     snprintf(cmd, sizeof(cmd), "dot " FILE_OUT " -T svg -o %s", Info->image_file);
     
     system(cmd);
@@ -132,6 +133,5 @@ void DoTreeInGraphviz(const DifNode_t *node, DumpInfo *Info, const DifNode_t *no
     fprintf(file, "}\n");
     fclose(file);
 
-    system("mkdir -p Images");
     DoSnprintf(Info);
 }

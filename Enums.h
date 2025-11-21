@@ -2,7 +2,6 @@
 #define ENUMS_H_
 
 #define MAX_VARIABLES 26
-#define VARIABLE_NOT_FOUND -1.0/0.0 // NaN
 
 enum DifErrors {
     kSuccess,
@@ -10,6 +9,7 @@ enum DifErrors {
     kSyntaxError,
     kNoMemory,
     kFailure,
+    kErrorOpening,
 };
 
 enum DifTypes {

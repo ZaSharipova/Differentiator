@@ -7,12 +7,11 @@
 #include "Enums.h"
 #include "Structs.h"
 #include "DifFunctions.h"
-#include "DoSolve.h"
+#include "DoDifferentiate.h"
 
 #include "DoGraph.h"
 #include "DoDump.h"
 #include "DoTex.h"
-
 
 #define eps 1e-11
 
@@ -22,18 +21,23 @@ static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change);
 static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change);
 static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change);
 
+static bool IsZero(DifNode_t *node);
+static bool IsOne(DifNode_t *node);
+static bool IsNumber(DifNode_t *node);
+
 #define NEWN(number) NewNumber(number)
 
 DifErrors OptimiseTree(DifNode_t *node, VariableInfo *arr, FILE *out) {
     assert(node);
     assert(arr);
+    assert(out);
 
     bool has_change = false;
 
     while (true) {
         has_change = false;
         node = ConstOptimise(node, arr, &has_change); 
-        DoTex(node, "x", out, false);// NULL
+        DoTex(node, "x", out, false); // NULL
         node = EraseNeutralElements(node, arr, &has_change);
         if (has_change == false) {
             break;
@@ -48,21 +52,20 @@ DifNode_t *ConstOptimise(DifNode_t *node, VariableInfo *arr, bool *has_change) {
     assert(has_change);
 
     if (node->right) {
-        if (node->right->operation != kNumber) {
+        if (!IsNumber(node->right)) {
             node->right = ConstOptimise(node->right, arr, has_change);
             if (!node->right) return NULL;
         }
     }
 
     if (node->left) {
-        if (node->left->operation != kNumber) {
+        if (!IsNumber(node->left)) {
             node->left = ConstOptimise(node->left, arr, has_change);
             if (!node->left) return NULL;
         }
     }
 
-    if (node->left && node->right &&
-        node->left->operation == kNumber && node->right->operation == kNumber) {
+    if (node->left && node->right && IsNumber(node->left) && IsNumber(node->right)) {
         double ans = EvaluateExpression(node, NULL);
         DeleteNode(node->left);
         DeleteNode(node->right);
@@ -75,7 +78,7 @@ DifNode_t *ConstOptimise(DifNode_t *node, VariableInfo *arr, bool *has_change) {
         return node;
     }
 
-    if (!node->left && node->right && node->right->operation == kNumber) {
+    if (!node->left && node->right && IsNumber(node->right)) {
         double ans = EvaluateExpression(node, arr);
         DeleteNode(node->right);
         node->right = NULL;
@@ -131,14 +134,14 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
 
     DifNode_t *copied_node = NULL;
 
-    if (node->left->operation == kNumber && fabs((*(node->left)).value.number) < eps) {
+    if (IsZero(node->left)) {
         copied_node = CopyNode(node->right);
         *has_change = true;
         DeleteNode(node);
         return copied_node;
     }
 
-    if (node->right->operation == kNumber && fabs((*(node->right)).value.number) < eps) {
+    if (IsZero(node->right)) {
         copied_node = CopyNode(node->left);
         *has_change = true;
         DeleteNode(node);
@@ -152,9 +155,8 @@ static DifNode_t *SubOptimise(DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
-    if (node->left->operation == kNumber && node->right->operation == kNumber && fabs((*(node->left)).value.number) < eps) {
+    if (IsNumber(node->right) && IsZero(node->left)) {
         DifNode_t *copied_node = CopyNode(node->left);
-
         DeleteNode(node);
         *has_change = true;
         return copied_node;
@@ -169,26 +171,21 @@ static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change) {
 
     DifNode_t *new_node = NULL;
 
-    if (node->left->operation == kNumber && fabs((*(node->left)).value.number - 1) < eps) {
+    if (IsOne(node->left)) {
         new_node = CopyNode(node->right);
-
         DeleteNode(node);
         return new_node;
     }
 
-    if (node->right->operation == kNumber && fabs((*(node->right)).value.number - 1) < eps) {
+    if (IsOne(node->right)) {
         new_node = CopyNode(node->left);
-
         DeleteNode(node);
         return new_node;
     }
 
-    if ((node->left->operation == kNumber && fabs((*(node->left)).value.number) < eps) || 
-    (node->left->operation == kNumber && fabs((*(node->left)).value.number) < eps)) {
-        new_node = NEWN(0);
-
+    if ((IsZero(node->left)) || IsZero(node->right)) {
         DeleteNode(node);
-        return new_node;
+        return NEWN(0);
     }
 
     return node;
@@ -200,20 +197,17 @@ static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change) {
 
     DifNode_t *new_node = NULL;
 
-    if (node->right->operation == kNumber && fabs((*(node->right)).value.number - 1) < eps) {
+    if (IsOne(node->right)) {
         new_node = CopyNode(node->right);
-
         DeleteNode(node);
         *has_change = true;
         return new_node;
     }
 
-    if (node->left->operation == kNumber && fabs((*(node->left)).value.number) < eps) {
-        new_node = NEWN(0);
-
+    if (IsZero(node->left)) {
         DeleteNode(node);
         *has_change = true;
-        return new_node;
+        return NEWN(0);
     }
 
     return node;
@@ -223,19 +217,19 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
-    if (node->left->operation == kNumber && fabs((*(node->left)).value.number) < eps) {
+    if (IsZero(node->left)) {
         DeleteNode(node);
         *has_change = true;
         return NEWN(0);
     }
 
-    if (node->right->operation == kNumber && fabs((*(node->right)).value.number) < eps) {
+    if (IsZero(node->right)) {
         DeleteNode(node);
         *has_change = true;
         return NEWN(1);
     }
 
-    if (node->right->operation == kNumber && fabs((*(node->right)).value.number - 1) < eps) {
+    if (IsOne(node->right)) {
         DifNode_t *new_node = CopyNode(node->left);
         DeleteNode(node);
         *has_change = true;
@@ -246,3 +240,21 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
 }
 
 #undef NEWN
+
+static bool IsZero(DifNode_t *node) {
+    assert(node);
+
+    return (node->operation == kNumber && fabs(node->value.number) < eps);
+}
+
+static bool IsOne(DifNode_t *node) {
+    assert(node);
+    
+    return (node->operation == kNumber && fabs(node->value.number - 1) < eps);
+}
+
+static bool IsNumber(DifNode_t *node) {
+    assert(node);
+
+    return (node->operation == kOperation);
+}
