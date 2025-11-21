@@ -1,3 +1,4 @@
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,6 +11,8 @@
 #include "DoGraph.h"
 #include "DoTex.h"
 #include "DoDump.h"
+
+#include "Optimise.h"
 
 int main(void) {
     FILE *file = fopen("expression.txt", "r");
@@ -46,6 +49,10 @@ int main(void) {
     DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
     DoDump(&DumpInfo);
     DoTex(root2.root, "x");
+
+    OptimiseTree(root2.root, Variable_Array);
+    DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
+    DoDump(&DumpInfo);
 
     ReadVariableValue(i, Variable_Array);
     double res = SolveEquation(&root, Variable_Array);

@@ -9,6 +9,9 @@ DifErrors NodeCtor(DifNode_t **node, Value *value);
 DifErrors DifRootCtor(DifRoot *root);
 
 double SolveEquation(DifRoot *root, VariableInfo *arr);
+double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
+
 DifErrors TreeDtor(DifRoot *tree);
+DifErrors DeleteNode(DifNode_t *node);
 
 #endif //DIF_FUNCTIONS_H_

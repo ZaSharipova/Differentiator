@@ -12,11 +12,9 @@
 static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var);
 static DifNode_t *DoCountPowDerivative(DifNode_t *node, const char *main_var);
 
-static DifNode_t *NewNumber(double value);
-static DifNode_t *NewNode(DifTypes dif_type, OperationTypes op_type, DifNode_t *left, DifNode_t *right);
+DifNode_t *NewNumber(double value);
+DifNode_t *NewOperationNode(OperationTypes op_type, DifNode_t *left, DifNode_t *right);
 
-static DifNode_t *NewOperationNode(OperationTypes op, DifNode_t *left, DifNode_t *right);
-static DifNode_t *NewNumberNode(double number, DifNode_t *parent);
 
 #define DEFAULT_NUMBER NULL
 
@@ -26,15 +24,15 @@ static DifNode_t *NewNumberNode(double number, DifNode_t *parent);
 #define CR CopyNode(node->right)
 #define DL Dif(node->left, main_var)
 #define DR Dif(node->right, main_var)
-#define ADD_(left, right) NewNode(kOperation, kAdd, left, right)
-#define SUB_(left, right) NewNode(kOperation, kSub, left, right)
-#define MUL_(left, right) NewNode(kOperation, kMul, left, right) 
-#define DIV_(left, right) NewNode(kOperation, kDiv, left, right) 
-#define POW_(left, right) NewNode(kOperation, kPow, left, right)
-#define SIN_(right) NewNode(kOperation, kSin, NULL, right)
-#define COS_(right) NewNode(kOperation, kCos, NULL, right)
-#define LN_(right) NewNode(kOperation, kLn, NULL, right)
-#define NEWN(number) NewNumberNode(number, node)
+#define ADD_(left, right) NewOperationNode(kAdd, left, right)
+#define SUB_(left, right) NewOperationNode(kSub, left, right)
+#define MUL_(left, right) NewOperationNode(kMul, left, right) 
+#define DIV_(left, right) NewOperationNode(kDiv, left, right) 
+#define POW_(left, right) NewOperationNode(kPow, left, right)
+#define SIN_(right) NewOperationNode(kSin, NULL, right)
+#define COS_(right) NewOperationNode(kCos, NULL, right)
+#define LN_(right) NewOperationNode(kLn, NULL, right)
+#define NEWN(number) NewNumber(number)
 
 DifNode_t *NewNumber(double value) {
 
@@ -47,13 +45,13 @@ DifNode_t *NewNumber(double value) {
     return new_node;
 }
 
-DifNode_t *NewNode(DifTypes dif_type, OperationTypes op_type, DifNode_t *left, DifNode_t *right) {
+DifNode_t *NewOperationNode(OperationTypes op_type, DifNode_t *left, DifNode_t *right) {
     assert(right);
 
     DifNode_t *new_node = NULL;
     NodeCtor(&new_node, NULL);
 
-    new_node->operation = dif_type;
+    new_node->operation = kOperation;
     new_node->value.type = op_type;
 
     new_node->left = left;
@@ -69,24 +67,7 @@ DifNode_t *NewNode(DifTypes dif_type, OperationTypes op_type, DifNode_t *left, D
     return new_node;
 }
 
-static DifNode_t *NewOperationNode(OperationTypes op, DifNode_t *left, DifNode_t *right) {
-    DifNode_t *new_node = NewNode(kOperation, op, NULL, NULL);
-    new_node->left = left;
-    new_node->right = right;
-
-    if (left) left->parent = new_node;
-    if (right) right->parent = new_node;
-
-    return new_node;
-}
-
-static DifNode_t *NewNumberNode(double number, DifNode_t *parent) {
-    DifNode_t *new_node = NewNumber(number);
-    new_node->parent = parent;
-    return new_node;
-}
-
-static DifNode_t *CopyNode(DifNode_t *node) {
+DifNode_t *CopyNode(DifNode_t *node) {
     if (node == NULL) {
         return NULL;
     }

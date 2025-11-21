@@ -5,5 +5,7 @@
 #include "Structs.h"
 
 DifNode_t *Dif(DifNode_t *node, const char *main_var);
+DifNode_t *NewNumber(double value);
+DifNode_t *CopyNode(DifNode_t *node);
 
 #endif //DO_SOLVE_H_

@@ -8,7 +8,7 @@
 #include "Enums.h"
 #include "Structs.h"
 
-static double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
+double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
 
 DifErrors NodeCtor(DifNode_t **node, Value *value) {
     assert(node);
@@ -62,7 +62,7 @@ static double FindVariableValue(VariableInfo *arr, char *var_name) {
     return 0;
 }
 
-static double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
+double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
     assert(node);
 
     if (node->operation == kNumber) {
