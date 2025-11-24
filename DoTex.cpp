@@ -5,26 +5,24 @@
 
 #include "Enums.h"
 #include "Structs.h"
-
-#include <stdio.h>
-
-static void DoTexInner(DifNode_t *node, FILE *out) {
+ 
+static void DoTexInner(DifNode_t *node, FILE *out) { ///////
     assert(node);
     assert(out);
 
-    if (node->operation == kNumber) {
+    if (node->type == kNumber) {
         fprintf(out, "%lg", node->value.number);
         return;
     }
 
-    if (node->operation == kVariable) {
-        fprintf(out, "%s", node->value.variable_name);
+    if (node->type == kVariable) {
+        fprintf(out, "%s", node->value.variable->variable_name);
         return;
     }
 
-    if (node->operation == kOperation) {
-        switch (node->value.type) {
-            case (kAdd):
+    if (node->type == kOperation) {
+        switch (node->value.operation) {
+            case (kOperationAdd):
                 fprintf(out, "(");
                 DoTexInner(node->left, out);
                 fprintf(out, " + ");
@@ -32,7 +30,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, ")");
                 break;
 
-            case (kSub):
+            case (kOperationSub):
                 fprintf(out, "(");
                 DoTexInner(node->left, out);
                 fprintf(out, " - ");
@@ -40,16 +38,16 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, ")");
                 break;
 
-            case (kMul):
-                fprintf(out, "(");
+            case (kOperationMul):
+                //fprintf(out, "(");
                 DoTexInner(node->left, out);
                 
                 fprintf(out, "\\cdot ");
                 DoTexInner(node->right, out);
-                fprintf(out, ")");
+                //fprintf(out, ")");
                 break;
 
-            case (kDiv):
+            case (kOperationDiv):
                 fprintf(out, "\\frac{");
                 DoTexInner(node->left, out);
                 fprintf(out, "}{");
@@ -57,7 +55,7 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, "}");
                 break;
 
-            case (kPow):
+            case (kOperationPow):
                 fprintf(out, "{");
                 DoTexInner(node->left, out);
                 fprintf(out, "}^{");
@@ -65,34 +63,34 @@ static void DoTexInner(DifNode_t *node, FILE *out) {
                 fprintf(out, "}");
                 break;
 
-            case (kSin):
+            case (kOperationSin):
                 fprintf(out, "\\sin{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
 
-            case (kCos):
+            case (kOperationCos):
                 fprintf(out, "\\cos{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
 
-            case (kTg):
+            case (kOperationTg):
                 fprintf(out, "\\tan{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
-            case (kLn):
+            case (kOperationLn):
                 fprintf(out, "\\log{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
-            case (kArctg):
+            case (kOperationArctg):
                 fprintf(out, "\\arctan{(");
                 DoTexInner(node->right, out);
                 fprintf(out, ")}");
                 break;
-            case (kNone):
+            case (kOperationNone):
             default:
                 fprintf(out, "?");
                 break;

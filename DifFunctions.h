@@ -14,4 +14,8 @@ double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
 DifErrors TreeDtor(DifRoot *tree);
 DifErrors DeleteNode(DifNode_t *node);
 
+DifErrors InitArrOfVariable(VariableArr *arr, size_t capacity);
+DifErrors ResizeArray(VariableArr *arr);
+DifErrors DtorVariableArray(VariableArr *arr);
+
 #endif //DIF_FUNCTIONS_H_

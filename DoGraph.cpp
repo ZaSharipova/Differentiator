@@ -6,13 +6,14 @@
 
 #include "Enums.h"
 #include "Structs.h"
+
 #define FILE_OUT "output.txt"
 #define MAX_COMMAND_SIZE 50
 
 static const char *PrintOperationType(const DifNode_t *node) {
     assert(node);
 
-    switch(node->operation) {
+    switch(node->type) {
     case (kNumber):
         return "NUM";
     case (kVariable):
@@ -25,28 +26,28 @@ static const char *PrintOperationType(const DifNode_t *node) {
 static GraphOperation PrintExpressionType(const DifNode_t *node) {
     assert(node);
 
-    switch (node->value.type) {
-        case (kAdd):
+    switch (node->value.operation) {
+        case (kOperationAdd):
             return {"ADD", "plum"};
-        case (kSub):
+        case (kOperationSub):
             return {"SUB", "orchid3"};
-        case (kMul):
+        case (kOperationMul):
             return {"MUL", "salmon1"};
-        case (kDiv):
+        case (kOperationDiv):
             return {"DIV", "skyblue"};
-        case (kPow):
+        case (kOperationPow):
             return {"POW", "darkseagreen3"};
-        case (kSin):
+        case (kOperationSin):
             return {"Sin", "khaki3"};
-        case (kCos):
+        case (kOperationCos):
             return {"COS", "cornsilk3"};
-        case (kTg):
+        case (kOperationTg):
             return {"TAN", "tan"};
-        case (kLn):
+        case (kOperationLn):
             return {"LOG", "cadetblue1"};
-        case (kArctg):
+        case (kOperationArctg):
             return {"ARCTG", "lightgoldenrod"};
-        case (kNone):
+        case (kOperationNone):
         default: return {NULL, NULL};
     }
 }
@@ -59,17 +60,17 @@ void PrintDotNode(FILE *file, const DifNode_t *node, const DifNode_t *node_color
     const char *color_number    = "dodgerblue";
     const char *color_variable  = "gold";
 
-    if (node->operation == kNumber || node->operation == kVariable) {
+    if (node->type == kNumber || node->type == kVariable) {
         fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Operation: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
-        if (node->operation == kNumber) {
+        if (node->type == kNumber) {
             fprintf(file, "  Value: %lf  \nLeft: %p | Right: %p\" shape=egg color=black fillcolor=%s style=filled width=4 height=1.5 fixedsize=true];\n", 
                 node->value.number, (void *)node->left, (void *)node->right, color_number);
         } else {
             fprintf(file, "  Value: %s  \nLeft: %p | Right: %p\" shape=octagon color=black fillcolor=%s style=filled width=4 height=1.5 fixedsize=true];\n", 
-                (node->value).variable_name, (void *)node->left, (void *)node->right, color_variable);
+                (node->value).variable->variable_name, (void *)node->left, (void *)node->right, color_variable);
         }
-    } else if (node->operation == kOperation) {
+    } else if (node->type == kOperation) {
         fprintf(file, "    \"%p\" [label=\"{Parent: %p \n | Addr: %p \n | Operation: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
         fprintf(file, " | Value: %s | {Left: %p | Right: %p}}\" shape=Mrecord color=black fillcolor=%s, style=filled];\n", 

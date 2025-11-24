@@ -8,10 +8,15 @@
 
 typedef char* Dif_t;
 
+struct VariableInfo {
+    const char *variable_name;
+    double variable_value;
+};
+
 union Value {
-    OperationTypes type;
+    OperationTypes operation;
     double number;
-    char *variable_name;
+    VariableInfo *variable;
 };
 
 struct FileInfo {
@@ -20,7 +25,7 @@ struct FileInfo {
 };
 
 struct DifNode_t {
-    DifTypes operation;
+    DifTypes type;
     union Value value;
     DifNode_t *parent;
     DifNode_t *left;
@@ -48,15 +53,16 @@ typedef struct DumpInfo {
     enum DifErrors error;
 } DumpInfo;
 
-struct VariableInfo {
-    char *variable_name;
-    double variable_value;
-};
-
 typedef struct {
     const char *name;
     OperationTypes type;
 } OpEntry;
+
+struct VariableArr {
+    VariableInfo *arr;
+    size_t size;
+    size_t capacity;
+};
 
 struct GraphOperation {
     const char *operation_name;

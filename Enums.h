@@ -19,17 +19,17 @@ enum DifTypes {
 };
 
 enum OperationTypes {
-    kAdd,
-    kSub,
-    kMul,
-    kDiv,
-    kPow,
-    kSin,
-    kCos,
-    kTg,
-    kLn,
-    kArctg,
-    kNone,
+    kOperationAdd, //kOperationAdd
+    kOperationSub,
+    kOperationMul,
+    kOperationDiv,
+    kOperationPow,
+    kOperationSin,
+    kOperationCos,
+    kOperationTg,
+    kOperationLn,
+    kOperationArctg,
+    kOperationNone,
 };
 
 #endif //ENUMS_H_

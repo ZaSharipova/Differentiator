@@ -107,87 +107,96 @@ Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
     return buffer + start;
 }
 
-static OperationTypes ParseOperator(const char *stroke) {
-    assert(stroke);
+static OpEntry operations[] = {
+    {"+",     kOperationAdd},
+    {"-",     kOperationSub},
+    {"*",     kOperationMul},
+    {"/",     kOperationDiv},
+    {"tg",    kOperationTg},
+    {"sin",   kOperationSin},
+    {"cos",   kOperationCos},
+    {"ln",    kOperationLn},
+    {"arctg", kOperationArctg},
+    {"pow",   kOperationPow},
+};
 
-    static OpEntry operations[] = {
-        {"+",     kAdd},
-        {"-",     kSub},
-        {"*",     kMul},
-        {"/",     kDiv},
-        {"tg",    kTg},
-        {"sin",   kSin},
-        {"cos",   kCos},
-        {"ln",    kLn},
-        {"arctg", kArctg},
-        {"pow",   kPow},
-    };
+static OperationTypes ParseOperator(const char *string) {
+    assert(string);
 
     size_t op_size = sizeof(operations)/sizeof(operations[0]);
 
     for (size_t i = 0; i < op_size; i++) {
-        size_t len = strlen(operations[i].name);
-        if (strncmp(stroke, operations[i].name, len) == 0) {
+        if (strncmp(string, operations[i].name, sizeof(*operations[i].name)) == 0) {
             return operations[i].type;
         }
     }
 
-    return kNone;
+    return kOperationNone;
 }
 
-static int ParseNumber(const char *stroke, double *out_val) {
-    assert(stroke);
+static bool ParseNumber(const char *string, double *out_val) {
+    assert(string); 
     assert(out_val);
 
     char *end = NULL;
-    double v = strtod(stroke, &end);
+    double v = strtod(string, &end);
 
-    if (end != stroke) {
+    if (end != string) {
         *out_val = v;
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
-static void ParseVariable(char *stroke, VariableInfo *arr, int *i, Value *val) {
-    assert(stroke);
+static void ParseVariable(char *string, VariableInfo *arr, int *pos, Value *val) {
+    assert(string);
     assert(arr);
-    assert(i);
+    assert(pos);
 
-    (*val).variable_name = stroke;
+    bool flag_found = false;
 
-    arr[*i].variable_name = stroke;
-    (*i)++;
+    for (int i = 0; i < *pos; i++) {
+        if (strcmp(arr[i].variable_name, string) == 0) {
+            val->variable = &arr[i];
+            flag_found = true;
+        }
+    }
+
+    if (!flag_found) {
+        arr[*pos].variable_name = string;
+        val->variable = &arr[*pos];
+        (*pos)++;
+    }
 }
 
-Value Convert(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
+Value CheckType(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     assert(ptr && node && arr && i);
 
-    char *stroke = *ptr;
+    char *string = *ptr;
     Value val = {};
 
-    OperationTypes op = ParseOperator(stroke);
-    if (op != kNone) {
-        node->operation = kOperation;
-        val.type = op;
+    OperationTypes op = ParseOperator(string);
+    if (op != kOperationNone) {
+        node->type = kOperation;
+        val.operation = op;
         return val;
     }
 
     double num = 0;
-    if (ParseNumber(stroke, &num)) {
-        node->operation = kNumber;
+    if (ParseNumber(string, &num)) {
+        node->type = kNumber;
         val.number = num;
         return val;
     }
 
-    node->operation = kVariable;
-    ParseVariable(stroke, arr, i, &val);
+    node->type = kVariable;
+    ParseVariable(string, arr, i, &val);
     return val;
 }
 
 
 static DifErrors ParseMainNode(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, Dif_t buffer,
-    DifNode_t **node_to_add, VariableInfo *arr, int *i) {
+    DifNode_t **node_to_add, VariableInfo *arr, int *i) { //
     assert(tree);
     assert(file);
     assert(logfile);
@@ -203,29 +212,22 @@ static DifErrors ParseMainNode(DifRoot *tree, FILE *file, FILE *logfile, size_t 
     (*pos)++;
     Dif_t char_to_convert = ReadTitle(logfile, buffer, pos);
 
-    Value val_ptr = Convert(&char_to_convert, new_node, arr, i);
-    // if (!val_ptr) {
-    //     fprintf(stderr, "Conversion error.\n");
-    //     return kSyntaxError;
-    // }
+    Value val_ptr = CheckType(&char_to_convert, new_node, arr, i);
 
     new_node->value = val_ptr;
-    // free(val_ptr);
     new_node->parent = parent;
 
-    SkipSpaces(buffer, pos);
     DifNode_t *left_child = NULL;
     CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &left_child, arr, i));
     new_node->left = left_child;
 
-    SkipSpaces(buffer, pos);
     DifNode_t *right_child = NULL;
     CHECK_ERROR_RETURN(ReadNodeFromFile(tree, file, logfile, pos, new_node, buffer, &right_child, arr, i));
     new_node->right = right_child;
 
     SkipSpaces(buffer, pos);
     if (buffer[*pos] != ')') {
-        fprintf(stderr, "Syntax error: expected ')'\n");
+        fprintf(stderr, "Syntax error: expected ')'\n"); // return node
         return kSyntaxError;
     }
 
@@ -238,7 +240,7 @@ static DifErrors ParseNilNode(size_t *pos, DifNode_t **node_to_add) {
     assert(pos);
     assert(node_to_add);
 
-    *pos += strlen("nil");
+    *pos += strlen("nil"); //
     *node_to_add = NULL;
     return kSuccess;
 }
@@ -260,7 +262,7 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
     assert(i);
 
     SkipSpaces(buffer, pos);
-    fprintf(logfile, "\n%stroke", buffer + *pos);
+    fprintf(logfile, "\n%s", buffer + *pos);
 
     if (buffer[*pos] == '(') {
         return ParseMainNode(tree, file, logfile, pos, parent, buffer, node_to_add, arr, i);
@@ -279,7 +281,7 @@ void ReadVariableValue(int size, VariableInfo *arr) {
 
     for (int pos = 0; pos < size; pos++) {
         int found = 0;
-        for (int i = 0; i < pos; i++) {
+        for (int i = 0; i < pos; i++) { //
             if (strcmp(arr[i].variable_name, arr[pos].variable_name) == 0) {
                 found = 1;
                 break;
