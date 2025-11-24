@@ -6,6 +6,9 @@
 
 void BeginTex(FILE *out);
 void EndTex(FILE *out);
-void DoTex(DifNode_t *node, const char *value, FILE *out, bool is_last);
+void DoTexInner(DifNode_t *node, FILE *out);
+void DoTexStep(DifNode_t *root, DifNode_t *current, const char *var, FILE *out);
 
+void DoTex(DifNode_t *node, const char *value, FILE *out, bool is_last);
+void PrintSolution(DifNode_t *node, double answer, FILE *out);
 #endif //DO_TEX_H_

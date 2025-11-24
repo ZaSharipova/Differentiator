@@ -1,4 +1,4 @@
-#include "DoDifferentiate.h"
+#include "Differentiate.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -8,9 +8,10 @@
 #include "Enums.h"
 #include "Structs.h"
 #include "DifFunctions.h"
+#include "DoTex.h"
 
 static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var);
-static DifNode_t *DoCountPowDerivative(DifNode_t *node, const char *main_var);
+static DifNode_t *DoCountPowDerivative(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *texfile);
 
 DifNode_t *NewNumber(double value);
 DifNode_t *NewOperationNode(OperationTypes op_type, DifNode_t *left, DifNode_t *right);
@@ -18,8 +19,8 @@ DifNode_t *NewOperationNode(OperationTypes op_type, DifNode_t *left, DifNode_t *
 #define PR node->parent
 #define CL CopyNode(node->left)
 #define CR CopyNode(node->right)
-#define DL Dif(node->left, main_var)
-#define DR Dif(node->right, main_var)
+#define DL Dif(root, node->left, main_var, texfile)
+#define DR Dif(root, node->right, main_var, texfile)
 #define ADD_(left, right) NewOperationNode(kOperationAdd, left, right)
 #define SUB_(left, right) NewOperationNode(kOperationSub, left, right)
 #define MUL_(left, right) NewOperationNode(kOperationMul, left, right) 
@@ -93,11 +94,16 @@ DifNode_t *CopyNode(DifNode_t *node) {
 }
 
 
-DifNode_t *Dif(DifNode_t *node, const char *main_var) {
-    assert(node); // количества вершин ради передавать указатель полностью на дерево
+DifNode_t *Dif(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *texfile) {
+    assert(root);
+    assert(node);
     assert(main_var);
+    assert(texfile);
 
-    if (node->type == kNumber) { //
+    // Вывод ДО дифференцирования текущего узла
+    DoTexStep(root, node, main_var, texfile);
+    
+    if (node->type == kNumber) {
         return NewNumber(0);
     } 
     
@@ -107,34 +113,53 @@ DifNode_t *Dif(DifNode_t *node, const char *main_var) {
         } else {
             return NewNumber(0);
         }
-    } 
-        switch (node->value.operation) {
+    }
+
+    DifNode_t *result = NULL;
+    
+    switch (node->value.operation) {
         case (kOperationAdd):
-            return ADD_(DL, DR);
+            result = ADD_(DL, DR);
+            break;
         case (kOperationSub):
-            return SUB_(DL, DR);
+            result = SUB_(DL, DR);
+            break;
         case (kOperationMul):
-            return ADD_(MUL_(DL, CR), MUL_(CL, DR));
+            result = ADD_(MUL_(DL, CR), MUL_(CL, DR));
+            break;
         case (kOperationDiv):
-            return DIV_(SUB_(MUL_(DL, CR), MUL_(CL, DR)), POW_(CR, NEWN(2)));
+            result = DIV_(SUB_(MUL_(DL, CR), MUL_(CL, DR)), POW_(CR, NEWN(2)));
+            break;
         case (kOperationSin):
-            return MUL_(COS_(CR), DR);
+            result = MUL_(COS_(CR), DR);
+            break;
         case (kOperationCos):
-            return MUL_(MUL_(NEWN(-1), SIN_(CR)), DR);
+            result = MUL_(MUL_(NEWN(-1), SIN_(CR)), DR);
+            break;
         case (kOperationTg):
-            return MUL_(DIV_(NEWN(1), POW_(COS_(CR), NEWN(2))), DR);
+            result = MUL_(DIV_(NEWN(1), POW_(COS_(CR), NEWN(2))), DR);
+            break;
         case (kOperationLn):
-            return MUL_(DIV_(NEWN(1), CR), DR);
+            result = MUL_(DIV_(NEWN(1), CR), DR);
+            break;
         case (kOperationArctg):
-            return MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_((CR), NEWN(2)))), DR);
+            result = MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_((CR), NEWN(2)))), DR);
+            break;
         case (kOperationPow):
-            return DoCountPowDerivative(node, main_var);
+            result = DoCountPowDerivative(root, node, main_var, texfile);
+            break;
         case (kOperationNone):
         default: 
             fprintf(stderr, "No such operation.\n");
             return NULL;
-        }
+    }
     
+    // Вывод ПОСЛЕ дифференцирования текущего узла
+    if (result) {
+        DoTexStep(root, result, main_var, texfile);
+    }
+    
+    return result;
 }
 
 static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var) {
@@ -156,9 +181,11 @@ static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **
     return kSuccess;
 }
 
-static DifNode_t *DoCountPowDerivative(DifNode_t *node, const char *main_var) {
+static DifNode_t *DoCountPowDerivative(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *texfile) {
+    assert(root);
     assert(node);
     assert(main_var);
+    assert(texfile);
 
     DifNode_t *node_left_main = NULL;
     FindMainVar(node->left, main_var, &node_left_main);
@@ -175,7 +202,7 @@ static DifNode_t *DoCountPowDerivative(DifNode_t *node, const char *main_var) {
     if (!node_right_main) {
         return MUL_(MUL_(CR, POW_(CL, SUB_(CR, NEWN(1)))), DL);
     } 
-    return MUL_(POW_(CL, CR), Dif(MUL_(LN_(CL), CR), main_var));
+    return MUL_(POW_(CL, CR), Dif(root, MUL_(LN_(CL), CR), main_var, texfile));
 
 }
 

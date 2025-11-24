@@ -8,6 +8,14 @@
 #include "Enums.h"
 #include "Structs.h"
 
+#include "ReadExpression.h"
+#include "Calculate.h"
+#include "DoTex.h"
+#include "DoGraph.h"
+#include "DoDump.h"
+#include "Differentiate.h"
+#include "Optimise.h"
+
 size_t DEFAULT_SIZE = 1;
 double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
 
@@ -79,8 +87,8 @@ DifErrors InitArrOfVariable(VariableArr *arr, size_t capacity) {
     arr->capacity = capacity;
     arr->size = 0;
 
-    arr->arr = (VariableInfo *) calloc (capacity, sizeof(VariableInfo));
-    if (!arr->arr) {
+    arr->var_array = (VariableInfo *) calloc (capacity, sizeof(VariableInfo));
+    if (!arr->var_array) {
         fprintf(stderr, "Memory error.\n");
         return kNoMemory;
     }
@@ -97,7 +105,7 @@ DifErrors ResizeArray(VariableArr *arr)  {
             fprintf(stderr, "Memory error.\n");
             return kNoMemory;
         }
-        arr->arr = ptr;
+        arr->var_array = ptr;
     }
 
     return kSuccess;
@@ -109,7 +117,72 @@ DifErrors DtorVariableArray(VariableArr *arr) {
     arr->capacity = 0;
     arr->size = 0;
 
-    free(arr->arr);
+    free(arr->var_array);
 
+    return kSuccess;
+}
+
+DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *DumpInfo) {
+    assert(Variable_Array);
+    assert(root);
+    assert(out);
+    assert(DumpInfo);
+
+    DiffModes ans = kDerivative;
+    printf("Введите, что вы хотите сделать с введенным выражением: 1. Посчитать (н-ную) производную,\n");
+    printf("2. Посчитать значение (н-ной) производной в точке, 3. Посчитать значение выражения, 4. Разложить по формуле Тейлора, \n");
+    printf("5. Построить график.\n");
+    scanf("%d", &ans);
+
+    if (ans == kDerivativeInPos || ans == kCount) {
+        ReadVariableValue(Variable_Array);
+    }
+    switch (ans) {
+        case (kDerivativeInPos):
+        case (kDerivative): {
+            printf("Введите, какую производную вы хотите посчитать:\n");
+            int ans2 = 0;
+            scanf("%d", &ans2); // пока только 1
+            DifNode_t *new_tree = Dif(root->root, root->root, "x", out);
+            DifRoot root2 = {};
+            root2.root = new_tree;
+            DumpInfo->tree = &root2;
+
+            strcpy(DumpInfo->message, " Do derivative");
+            DoTreeInGraphviz(root2.root, DumpInfo, root2.root);
+            DoDump(DumpInfo);
+            DoTex(root2.root, "x", out, false);
+
+            root2.root = OptimiseTree(root2.root, out);
+            DoTreeInGraphviz(root2.root, DumpInfo, root2.root);
+            strcpy(DumpInfo->message, " Optimised tree");
+            DoDump(DumpInfo);
+            DoTex(root2.root, "x", out, false);
+
+            if (ans == kDerivativeInPos) {
+                double res = SolveEquation(root);
+                printf("Результат вычисления выражения: %lf", res);
+
+                PrintSolution(root->root, res, out);
+                strcpy(DumpInfo->message, " Calculate expression");
+                DoTreeInGraphviz(root2.root, DumpInfo, root2.root);
+                DoDump(DumpInfo);
+            }
+
+            printf("Скорее смотрите ДАМП и ТЕХ!!!\n");
+            TreeDtor(&root2);
+            break;
+        }
+        case (kCount): {
+            double res = SolveEquation(root);
+            printf("Результат вычисления выражения: %lf", res);
+            PrintSolution(root->root, res, out);
+            break;
+        }
+        case (kTeilor):
+        case (kGraph):
+        default:
+            return kSuccess;
+    }
     return kSuccess;
 }

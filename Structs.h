@@ -59,7 +59,7 @@ typedef struct {
 } OpEntry;
 
 struct VariableArr {
-    VariableInfo *arr;
+    VariableInfo *var_array;
     size_t size;
     size_t capacity;
 };
@@ -68,5 +68,6 @@ struct GraphOperation {
     const char *operation_name;
     const char *color;
 };
+
 
 #endif //STRUCTS_H_

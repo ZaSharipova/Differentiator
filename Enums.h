@@ -19,7 +19,7 @@ enum DifTypes {
 };
 
 enum OperationTypes {
-    kOperationAdd, //kOperationAdd
+    kOperationAdd,
     kOperationSub,
     kOperationMul,
     kOperationDiv,
@@ -30,6 +30,14 @@ enum OperationTypes {
     kOperationLn,
     kOperationArctg,
     kOperationNone,
+};
+
+enum DiffModes {
+    kDerivative      = 1,
+    kDerivativeInPos = 2,
+    kCount           = 3,
+    kTeilor          = 4,
+    kGraph           = 5,
 };
 
 #endif //ENUMS_H_

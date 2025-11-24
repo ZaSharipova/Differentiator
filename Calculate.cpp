@@ -1,4 +1,4 @@
-#include "DoCalculate.h"
+#include "Calculate.h"
 
 #include <stdio.h>
 #include <assert.h>
@@ -23,16 +23,14 @@ static double FindVariableValue(VariableInfo *arr, const char *var_name) {
     return 0;
 }
 
-double SolveEquation(DifRoot *root, VariableInfo *arr) {
+double SolveEquation(DifRoot *root) {
     assert(root);
-    assert(arr);
 
-    return EvaluateExpression(root->root, arr);
+    return EvaluateExpression(root->root);
 }
 
-double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
+double EvaluateExpression(DifNode_t *node) {
     assert(node);
-    assert(arr);
 
     if (node->type == kNumber) {
         return node->value.number;
@@ -44,42 +42,42 @@ double EvaluateExpression(DifNode_t *node, VariableInfo *arr) {
 
     switch (node->value.operation) {
     case (kOperationAdd):
-        return EvaluateExpression(node->left, arr) +
-            EvaluateExpression(node->right, arr);
+        return EvaluateExpression(node->left) +
+            EvaluateExpression(node->right);
 
     case (kOperationSub):
-        return EvaluateExpression(node->left, arr) -
-            EvaluateExpression(node->right, arr);
+        return EvaluateExpression(node->left) -
+            EvaluateExpression(node->right);
 
     case (kOperationMul):
-        return EvaluateExpression(node->left, arr) *
-            EvaluateExpression(node->right, arr);
+        return EvaluateExpression(node->left) *
+            EvaluateExpression(node->right);
 
     case (kOperationDiv): {
-        double right = EvaluateExpression(node->right, arr);
+        double right = EvaluateExpression(node->right);
         if (right < 1e-12) {
             fprintf(stderr, "Division by zero.\n");
             return 0;
         }
-        return EvaluateExpression(node->left, arr) / right;
+        return EvaluateExpression(node->left) / right;
     }
 
     case (kOperationPow):
-        return pow(EvaluateExpression(node->left, arr),
-                EvaluateExpression(node->right, arr));
+        return pow(EvaluateExpression(node->left),
+                EvaluateExpression(node->right));
 
     case (kOperationSin):
-        return sin(EvaluateExpression(node->right, arr));
+        return sin(EvaluateExpression(node->right));
 
     case (kOperationCos):
-        return cos(EvaluateExpression(node->right, arr));
+        return cos(EvaluateExpression(node->right));
 
     case (kOperationTg):
-        return tan(EvaluateExpression(node->right, arr));
+        return tan(EvaluateExpression(node->right));
     case (kOperationLn):
-        return log(EvaluateExpression(node->right, arr));
+        return log(EvaluateExpression(node->right));
     case (kOperationArctg):
-        return atan(EvaluateExpression(node->right, arr));
+        return atan(EvaluateExpression(node->right));
 
     case (kOperationNone):
     default:

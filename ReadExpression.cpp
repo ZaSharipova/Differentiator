@@ -11,12 +11,6 @@
 #include "Structs.h"
 #include "DifFunctions.h"
 
-#define CHECK_ERROR_RETURN(cond) \
-    err = cond;                  \
-    if (err != kSuccess) {       \
-        return err;              \
-    }
-
 
 long long SizeOfFile(const char *filename) {
     assert(filename);
@@ -148,7 +142,7 @@ static bool ParseNumber(const char *string, double *out_val) {
     return false;
 }
 
-static void ParseVariable(char *string, VariableInfo *arr, int *pos, Value *val) {
+static DifErrors ParseVariable(char *string, VariableArr *arr, int *pos, Value *val) {
     assert(string);
     assert(arr);
     assert(pos);
@@ -156,21 +150,30 @@ static void ParseVariable(char *string, VariableInfo *arr, int *pos, Value *val)
     bool flag_found = false;
 
     for (int i = 0; i < *pos; i++) {
-        if (strcmp(arr[i].variable_name, string) == 0) {
-            val->variable = &arr[i];
+        if (strcmp(arr->var_array[i].variable_name, string) == 0) {
+            val->variable = &arr->var_array[i];
             flag_found = true;
         }
     }
 
+    DifErrors err = kSuccess;
+    CHECK_ERROR_RETURN(ResizeArray(arr));
+
     if (!flag_found) {
-        arr[*pos].variable_name = string;
-        val->variable = &arr[*pos];
+        arr->var_array[*pos].variable_name = string;
+        val->variable = &arr->var_array[*pos];
+        arr->size ++;
         (*pos)++;
     }
+
+    return kSuccess;
 }
 
-Value CheckType(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
-    assert(ptr && node && arr && i);
+Value CheckType(Dif_t *ptr, DifNode_t *node, VariableArr *arr, int *pos) {
+    assert(ptr);
+    assert(node);
+    assert(arr);
+    assert(pos);
 
     char *string = *ptr;
     Value val = {};
@@ -190,13 +193,13 @@ Value CheckType(Dif_t *ptr, DifNode_t *node, VariableInfo *arr, int *i) {
     }
 
     node->type = kVariable;
-    ParseVariable(string, arr, i, &val);
+    ParseVariable(string, arr, pos, &val); //
     return val;
 }
 
 
 static DifErrors ParseMainNode(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, Dif_t buffer,
-    DifNode_t **node_to_add, VariableInfo *arr, int *i) { //
+    DifNode_t **node_to_add, VariableArr *arr, int *i) { //
     assert(tree);
     assert(file);
     assert(logfile);
@@ -253,7 +256,7 @@ static DifErrors SyntaxErrorNode(size_t pos, char c) {
 
 
 DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, 
-    Dif_t buffer, DifNode_t **node_to_add, VariableInfo *arr, int *i) {
+    Dif_t buffer, DifNode_t **node_to_add, VariableArr *arr, int *i) {
     assert(tree);
     assert(file);
     assert(logfile);
@@ -276,24 +279,14 @@ DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos
 }
 
 
-void ReadVariableValue(int size, VariableInfo *arr) {
+void ReadVariableValue(VariableArr *arr) {
     assert(arr);
 
-    for (int pos = 0; pos < size; pos++) {
-        int found = 0;
-        for (int i = 0; i < pos; i++) { //
-            if (strcmp(arr[i].variable_name, arr[pos].variable_name) == 0) {
-                found = 1;
-                break;
-            }
-        }
-        if (found)
-            continue;
-
-        printf("Введите значение переменной %s:\n", arr[pos].variable_name);
-        if (scanf("%lf", &arr[pos].variable_value) != 1) {
-            fprintf(stderr, "Ошибка ввода значения переменной %s.\n", arr[pos].variable_name);
-            arr[pos].variable_value = 0;
+    for (size_t pos = 0; pos < arr->size; pos++) {
+        printf("Введите значение переменной %s:\n", arr->var_array[pos].variable_name);
+        if (scanf("%lf", &arr->var_array[pos].variable_value) != 1) {
+            fprintf(stderr, "Ошибка ввода значения переменной %s.\n", arr->var_array[pos].variable_name);
+            arr->var_array[pos].variable_value = 0; //
         }
         
     }

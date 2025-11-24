@@ -7,7 +7,8 @@
 #include "Enums.h"
 #include "Structs.h"
 #include "DifFunctions.h"
-#include "DoDifferentiate.h"
+#include "Differentiate.h"
+#include "Calculate.h"
 
 #include "DoGraph.h"
 #include "DoDump.h"
@@ -21,7 +22,7 @@ static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change);
 static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change);
 static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change);
 
-static DifNode_t *CheckNodeAndConstOptimise(DifNode_t *node, VariableInfo *arr, 
+static DifNode_t *CheckNodeAndConstOptimise(DifNode_t *node, 
     bool *has_change);
 
 static bool IsZero(DifNode_t *node);
@@ -31,35 +32,34 @@ static bool IsOperation(DifNode_t *node);
 
 #define NEWN(number) NewNumber(number)
 
-DifErrors OptimiseTree(DifNode_t *node, VariableInfo *arr, FILE *out) {
+DifNode_t *OptimiseTree(DifNode_t *node, FILE *out) {
     assert(node);
-    assert(arr);
     assert(out);
 
     bool has_change = true;
 
     while (has_change) {
         has_change = false;
-        node = ConstOptimise(node, arr, &has_change); 
-        DoTex(node, "x", out, false); // NULL
-        node = EraseNeutralElements(node, arr, &has_change); //
-        if (!has_change) {
-            break;
-        }
+        node = ConstOptimise(node, &has_change); 
+        if (has_change) DoTex(node, "x", out, false); // NULL
+        node = EraseNeutralElements(node, &has_change); //
+        if (has_change) DoTex(node, "x", out, false); // NULL
+        // if (!has_change) {
+        //     break;
+        // }
     }
-    return kSuccess;
+    return node;
 }
 
-DifNode_t *ConstOptimise(DifNode_t *node, VariableInfo *arr, bool *has_change) {
+DifNode_t *ConstOptimise(DifNode_t *node, bool *has_change) {
     assert(node);
-    assert(arr);
     assert(has_change);
 
-    CheckNodeAndConstOptimise(node->right, arr, has_change);
-    CheckNodeAndConstOptimise(node->left, arr, has_change);
+    CheckNodeAndConstOptimise(node->right, has_change);
+    CheckNodeAndConstOptimise(node->left, has_change);
 
     if (node->left && node->right && IsNumber(node->left) && IsNumber(node->right)) {
-        double ans = EvaluateExpression(node, arr);
+        double ans = EvaluateExpression(node);
         DeleteNode(node->left);
         DeleteNode(node->right);
         node->left = node->right = NULL;
@@ -72,7 +72,7 @@ DifNode_t *ConstOptimise(DifNode_t *node, VariableInfo *arr, bool *has_change) {
     }
 
     if (!node->left && IsNumber(node->right)) {
-        double ans = EvaluateExpression(node, arr);
+        double ans = EvaluateExpression(node);
         DeleteNode(node->right);
         node->right = NULL;
 
@@ -86,17 +86,16 @@ DifNode_t *ConstOptimise(DifNode_t *node, VariableInfo *arr, bool *has_change) {
     return node;
 }
 
-DifNode_t *EraseNeutralElements(DifNode_t *node, VariableInfo *arr, bool *has_change) {
+DifNode_t *EraseNeutralElements(DifNode_t *node, bool *has_change) {
     assert(node);
-    assert(arr);
     assert(has_change);
 
     if (node->left) {
-        node->left = EraseNeutralElements(node->left, arr, has_change);
+        node->left = EraseNeutralElements(node->left, has_change);
     }
 
     if (node->right) {
-        node->right = EraseNeutralElements(node->right, arr, has_change);
+        node->right = EraseNeutralElements(node->right, has_change);
     }
 
     if ((!node->left || !node->right) || !IsOperation(node)) {
@@ -133,6 +132,7 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
 
     if (IsZero(node->left)) {
         copied_node = CopyNode(node->right);
+        node->left = node->right = NULL;
         *has_change = true;
         DeleteNode(node);
         return copied_node;
@@ -140,6 +140,7 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
 
     if (IsZero(node->right)) {
         copied_node = CopyNode(node->left);
+        node->left = node->right = NULL;
         *has_change = true;
         DeleteNode(node);
         return copied_node;
@@ -154,6 +155,7 @@ static DifNode_t *SubOptimise(DifNode_t *node, bool *has_change) {
 
     if (IsNumber(node->right) && IsZero(node->left)) {
         DifNode_t *copied_node = CopyNode(node->left);
+        node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
         return copied_node;
@@ -170,12 +172,14 @@ static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change) {
 
     if (IsOne(node->left)) {
         new_node = CopyNode(node->right);
+        node->left = node->right = NULL;
         DeleteNode(node);
         return new_node;
     }
 
     if (IsOne(node->right)) {
         new_node = CopyNode(node->left);
+        node->left = node->right = NULL;
         DeleteNode(node);
         return new_node;
     }
@@ -196,6 +200,7 @@ static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change) {
 
     if (IsOne(node->right)) {
         new_node = CopyNode(node->right);
+        node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
         return new_node;
@@ -215,12 +220,14 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
     assert(has_change);
 
     if (IsZero(node->left)) {
+        node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
         return NEWN(0);
     }
 
     if (IsZero(node->right)) {
+        node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
         return NEWN(1);
@@ -228,6 +235,7 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
 
     if (IsOne(node->right)) {
         DifNode_t *new_node = CopyNode(node->left);
+        node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
         return new_node;
@@ -270,13 +278,12 @@ static bool IsOperation(DifNode_t *node) {
     return (node->type == kOperation);
 }
 
-static DifNode_t *CheckNodeAndConstOptimise(DifNode_t *node, VariableInfo *arr, 
+static DifNode_t *CheckNodeAndConstOptimise(DifNode_t *node, 
     bool *has_change) {
-    assert(arr);
     assert(has_change);
 
     if (node && !IsNumber(node)) {
-        node = ConstOptimise(node, arr, has_change);
+        node = ConstOptimise(node, has_change);
         if (!node) return NULL;
     }
     return node;
