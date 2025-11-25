@@ -20,4 +20,9 @@ DifErrors DtorVariableArray(VariableArr *arr);
 
 DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *DumpInfo);
 
+DifErrors ForestCtor(Forest *forest, size_t size);
+void ForestDtor(Forest *forest);
+
+void PrintExpressionToFile(FILE *out, DifRoot *root);
+
 #endif //DIF_FUNCTIONS_H_

@@ -78,6 +78,12 @@ double EvaluateExpression(DifNode_t *node) {
         return log(EvaluateExpression(node->right));
     case (kOperationArctg):
         return atan(EvaluateExpression(node->right));
+    case (kOperationSinh):
+        return sinh(EvaluateExpression(node->right));    
+    case (kOperationCosh):
+        return cosh(EvaluateExpression(node->right));
+    case (kOperationTgh):
+        return tanh(EvaluateExpression(node->right));
 
     case (kOperationNone):
     default:

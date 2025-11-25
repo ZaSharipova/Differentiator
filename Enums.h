@@ -29,6 +29,9 @@ enum OperationTypes {
     kOperationTg,
     kOperationLn,
     kOperationArctg,
+    kOperationSinh,
+    kOperationCosh,
+    kOperationTgh,
     kOperationNone,
 };
 
@@ -38,6 +41,7 @@ enum DiffModes {
     kCount           = 3,
     kTeilor          = 4,
     kGraph           = 5,
+    kExit            = 6,
 };
 
 #endif //ENUMS_H_

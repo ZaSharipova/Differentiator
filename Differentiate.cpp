@@ -10,7 +10,6 @@
 #include "DifFunctions.h"
 #include "DoTex.h"
 
-static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var);
 static DifNode_t *DoCountPowDerivative(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *texfile);
 
 DifNode_t *NewNumber(double value);
@@ -28,6 +27,8 @@ DifNode_t *NewOperationNode(OperationTypes op_type, DifNode_t *left, DifNode_t *
 #define POW_(left, right) NewOperationNode(kOperationPow, left, right)
 #define SIN_(right) NewOperationNode(kOperationSin, NULL, right)
 #define COS_(right) NewOperationNode(kOperationCos, NULL, right)
+#define SINH_(right) NewOperationNode(kOperationSinh, NULL, right)
+#define COSH_(right) NewOperationNode(kOperationCosh, NULL, right)
 #define LN_(right) NewOperationNode(kOperationLn, NULL, right)
 #define NEWN(number) NewNumber(number)
 
@@ -101,7 +102,7 @@ DifNode_t *Dif(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *tex
     assert(texfile);
 
     // Вывод ДО дифференцирования текущего узла
-    DoTexStep(root, node, main_var, texfile);
+    //DoTexStep(root, node, main_var, texfile);
     
     if (node->type == kNumber) {
         return NewNumber(0);
@@ -143,10 +144,19 @@ DifNode_t *Dif(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *tex
             result = MUL_(DIV_(NEWN(1), CR), DR);
             break;
         case (kOperationArctg):
-            result = MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_((CR), NEWN(2)))), DR);
+            result = MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_(CR, NEWN(2)))), DR);
             break;
         case (kOperationPow):
             result = DoCountPowDerivative(root, node, main_var, texfile);
+            break;
+        case (kOperationSinh):
+            result = MUL_(COSH_(CR), DR);
+            break;
+        case (kOperationCosh):
+            result = MUL_(SINH_(CR), DR);
+            break; 
+        case (kOperationTgh):
+            result = MUL_(DIV_(NEWN(1), POW_(CR, NEWN(2))), DR);
             break;
         case (kOperationNone):
         default: 
@@ -155,14 +165,15 @@ DifNode_t *Dif(DifNode_t *root, DifNode_t *node, const char *main_var, FILE *tex
     }
     
     // Вывод ПОСЛЕ дифференцирования текущего узла
-    if (result) {
-        DoTexStep(root, result, main_var, texfile);
-    }
+    // if (result) {
+    //     printf("asdfgh\n");
+    //     DoTexStep(result, result, main_var, texfile);
+    // }
     
     return result;
 }
 
-static DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var) {
+DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var) {
     if (!node) {
         return kSuccess;
     }
@@ -217,5 +228,7 @@ static DifNode_t *DoCountPowDerivative(DifNode_t *root, DifNode_t *node, const c
 #undef POW_
 #undef SIN_
 #undef COS_
+#undef SINH_
+#undef COSH_
 #undef LN_
 #undef NEWN

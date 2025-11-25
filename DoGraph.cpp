@@ -38,7 +38,7 @@ static GraphOperation PrintExpressionType(const DifNode_t *node) {
         case (kOperationPow):
             return {"POW", "darkseagreen3"};
         case (kOperationSin):
-            return {"Sin", "khaki3"};
+            return {"SIN", "khaki3"};
         case (kOperationCos):
             return {"COS", "cornsilk3"};
         case (kOperationTg):
@@ -47,6 +47,12 @@ static GraphOperation PrintExpressionType(const DifNode_t *node) {
             return {"LOG", "cadetblue1"};
         case (kOperationArctg):
             return {"ARCTG", "lightgoldenrod"};
+        case (kOperationSinh):
+            return {"SH", "lemonchiffon"};
+        case (kOperationCosh):
+            return {"CH", "lightpink"};
+        case (kOperationTgh):
+            return {"TH", "lightskyblue3"};
         case (kOperationNone):
         default: return {NULL, NULL};
     }

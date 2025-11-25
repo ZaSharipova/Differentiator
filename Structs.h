@@ -5,6 +5,7 @@
 
 #include "Enums.h"
 #define MAX_IMAGE_SIZE 60
+#define MAX_TEXT_SIZE 120
 
 typedef char* Dif_t;
 
@@ -46,7 +47,7 @@ typedef struct DumpInfo {
     char message[MAX_IMAGE_SIZE];
     char *name;
     char *question;
-    char image_file[MAX_IMAGE_SIZE];
+    char image_file[MAX_TEXT_SIZE];
     size_t graph_counter;
     bool flag_new;
 
@@ -69,5 +70,9 @@ struct GraphOperation {
     const char *color;
 };
 
+struct Forest {
+    size_t size;
+    DifRoot *trees;
+};
 
 #endif //STRUCTS_H_

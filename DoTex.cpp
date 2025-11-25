@@ -196,6 +196,25 @@ static void DoTexInnerHighlight(DifNode_t *node, DifNode_t *highlight, FILE *out
             fprintf(out, ")");
             break;
 
+        case kOperationSinh:
+            fprintf(out, "\\sinh(");
+            DoTexInnerHighlight(node->right, highlight, out);
+            fprintf(out, ")");
+            break;
+
+        case kOperationCosh:
+            fprintf(out, "\\cosh(");
+            DoTexInnerHighlight(node->right, highlight, out);
+            fprintf(out, ")");
+            break;
+
+        case kOperationTgh:
+            fprintf(out, "\\tanh(");
+            DoTexInnerHighlight(node->right, highlight, out);
+            fprintf(out, ")");
+            break;
+
+        case (kOperationNone):
         default:
             fprintf(out, "?");
             break;
@@ -203,13 +222,13 @@ static void DoTexInnerHighlight(DifNode_t *node, DifNode_t *highlight, FILE *out
 }
 
 void DoTexStep(DifNode_t *root, DifNode_t *current, const char *var, FILE *out) {
-    fprintf(out, "\\text{%s} \\\\ \n", TexPhrasesArray[rand() % TEX_PHRASES_COUNT]);
-    fprintf(out, "\\[\\frac{df}{d%s} = ", var);
+    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[rand() % TEX_PHRASES_COUNT]);
+    fprintf(out, "\\begin{dmath}\n\\frac{df}{d%s} = ", var);
     // fprintf(out, "$");
 
     DoTexInnerHighlight(root, current, out);
 
-    fprintf(out, " \\]\\\\ \n");
+    fprintf(out, "\n\\end{dmath} \n");
 }
 
 void BeginTex(FILE *out) {
@@ -218,8 +237,9 @@ void BeginTex(FILE *out) {
     fprintf(out, "\n\\usepackage[utf8]{inputenc}\n");
     fprintf(out, "\\usepackage[english,russian]{babel}");
     fprintf(out, "\\usepackage{xcolor}\n");
+    fprintf(out, "\n\\usepackage{breqn}\n");
     fprintf(out, "\\usepackage[left=2cm, top=2cm, right=2cm, bottom=2cm]{geometry}\n\n");
-    fprintf(out, "\\begin{document}\n\\fontsize{15}{18}\\selectfont\n");
+    fprintf(out, "\\begin{document}\n\\fontsize{7}{9}\\selectfont\n");
 }
 
 void EndTex(FILE *out) {
@@ -232,17 +252,18 @@ void DoTex(DifNode_t *node, const char *value, FILE *out, bool is_last) {
     assert(out);
 
     //fprintf(out, "\n\\[\n");
-    fprintf(out, "$\\frac{df}{d%s} = ", value);
+    fprintf(out, "\\begin{dmath} \\frac{df}{d%s} = ", value);
     DoTexInnerHighlight(node, NULL, out);
-    fprintf(out, "$");
-    if (!is_last) fprintf(out, " \\\\ \n");
+    fprintf(out, "\\end{dmath}\n");
+    //if (!is_last) fprintf(out, " \\\\ \n");
 }
 
 void PrintSolution(DifNode_t *node, double answer, FILE *out) {
     assert(node);
     assert(out);
-
-    fprintf(out, "\\[");
+    
+    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[rand() % TEX_PHRASES_COUNT]);
+    fprintf(out, "\\begin{dmath}\n");
     DoTexInnerHighlight(node, NULL, out);
-    fprintf(out, " = %lf\\]", answer);
+    fprintf(out, " = %lf\n\\end{dmath}\n", answer);
 }

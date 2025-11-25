@@ -58,7 +58,7 @@ DifNode_t *ConstOptimise(DifNode_t *node, bool *has_change) {
     CheckNodeAndConstOptimise(node->right, has_change);
     CheckNodeAndConstOptimise(node->left, has_change);
 
-    if (node->left && node->right && IsNumber(node->left) && IsNumber(node->right)) {
+    if (IsNumber(node->left) && IsNumber(node->right)) {
         double ans = EvaluateExpression(node);
         DeleteNode(node->left);
         DeleteNode(node->right);
@@ -131,7 +131,7 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
     DifNode_t *copied_node = NULL;
 
     if (IsZero(node->left)) {
-        copied_node = CopyNode(node->right);
+        copied_node = node->right;
         node->left = node->right = NULL;
         *has_change = true;
         DeleteNode(node);
@@ -139,7 +139,7 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
     }
 
     if (IsZero(node->right)) {
-        copied_node = CopyNode(node->left);
+        copied_node = node->left;
         node->left = node->right = NULL;
         *has_change = true;
         DeleteNode(node);
@@ -148,21 +148,34 @@ static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
 
     return node;
 }
+
+#define MUL_(left, right) NewOperationNode(kOperationMul, left, right) 
 
 static DifNode_t *SubOptimise(DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
-    if (IsNumber(node->right) && IsZero(node->left)) {
-        DifNode_t *copied_node = CopyNode(node->left);
+    if (IsZero(node->right)) {
+        DifNode_t *copied_node = node->left;
         node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
         return copied_node;
     }
 
+
+    if (IsZero(node->left)) {
+        node->type = kOperation;
+        node->value.operation = kOperationMul;
+        node->left->value.number = -1;
+        //DeleteNode(node);
+        *has_change = true;
+        return node;
+    }
+
     return node;
 }
+#undef MUL_
 
 static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change) {
     assert(node);
@@ -171,14 +184,14 @@ static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change) {
     DifNode_t *new_node = NULL;
 
     if (IsOne(node->left)) {
-        new_node = CopyNode(node->right);
+        new_node = node->right;
         node->left = node->right = NULL;
         DeleteNode(node);
         return new_node;
     }
 
     if (IsOne(node->right)) {
-        new_node = CopyNode(node->left);
+        new_node = node->left;
         node->left = node->right = NULL;
         DeleteNode(node);
         return new_node;
@@ -199,7 +212,7 @@ static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change) {
     DifNode_t *new_node = NULL;
 
     if (IsOne(node->right)) {
-        new_node = CopyNode(node->right);
+        new_node = node->right;
         node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;
@@ -234,7 +247,7 @@ static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
     }
 
     if (IsOne(node->right)) {
-        DifNode_t *new_node = CopyNode(node->left);
+        DifNode_t *new_node = node->left;
         node->left = node->right = NULL;
         DeleteNode(node);
         *has_change = true;

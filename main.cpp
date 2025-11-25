@@ -16,12 +16,6 @@
 #include "Optimise.h"
 
 #define MAX_VARIABLE_SIZE 30
-#define FILE_OPEN_AND_CHECK(file, filename, mode) \
-    FILE *file = fopen(filename, mode);           \
-    if (!file) {                                  \
-        perror("Error opening file");             \
-        return kErrorOpening;                     \
-    }
 
 #define INIT_DUMP_INFO(name)                                     \
     DumpInfo DumpInfo = {};                                      \
@@ -78,6 +72,9 @@ int main(void) {
     fclose(file);
     fclose(logfile);
 
+//     FILE *gnu_test = fopen("gnuplot_test.txt", "w");
+// fprintf(gnu_test, "Test123\n");
+// fclose(gnu_test);
     DtorVariableArray(&Variable_Array);
     TreeDtor(&root);
 }
