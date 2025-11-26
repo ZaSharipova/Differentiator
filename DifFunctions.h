@@ -25,4 +25,6 @@ void ForestDtor(Forest *forest);
 
 void PrintExpressionToFile(FILE *out, DifRoot *root);
 
+size_t CountSubTreeSize(DifNode_t *node);
+
 #endif //DIF_FUNCTIONS_H_

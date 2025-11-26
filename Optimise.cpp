@@ -16,13 +16,15 @@
 
 double eps = 1e-11;
 
-static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change);
-static DifNode_t *SubOptimise(DifNode_t *node, bool *has_change);
-static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change);
-static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change);
-static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change);
+static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
+static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
+static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
+static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
+static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 
-static DifNode_t *CheckNodeAndConstOptimise(DifNode_t *node, 
+size_t FreeSubTree(DifNode_t *node);
+
+static DifNode_t *CheckNodeAndConstOptimise(DifRoot *root, DifNode_t *node, 
     bool *has_change);
 
 static bool IsZero(DifNode_t *node);
@@ -30,9 +32,10 @@ static bool IsOne(DifNode_t *node);
 static bool IsNumber(DifNode_t *node);
 static bool IsOperation(DifNode_t *node);
 
-#define NEWN(number) NewNumber(number)
+#define NEWN(number) NewNumber(root, number)
 
-DifNode_t *OptimiseTree(DifNode_t *node, FILE *out) {
+DifNode_t *OptimiseTree(DifRoot *root, DifNode_t *node, FILE *out) {
+    assert(root);
     assert(node);
     assert(out);
 
@@ -40,45 +43,46 @@ DifNode_t *OptimiseTree(DifNode_t *node, FILE *out) {
 
     while (has_change) {
         has_change = false;
-        node = ConstOptimise(node, &has_change); 
-        if (has_change) DoTex(node, "x", out, false); // NULL
-        node = EraseNeutralElements(node, &has_change); //
-        if (has_change) DoTex(node, "x", out, false); // NULL
-        // if (!has_change) {
-        //     break;
-        // }
+        node = ConstOptimise(root, node, &has_change); 
+        if (has_change) DoTex(node, "x", out); // NULL
+        node = EraseNeutralElements(root, node, &has_change); //
+        if (has_change) DoTex(node, "x", out); // NULL
     }
     return node;
 }
 
-DifNode_t *ConstOptimise(DifNode_t *node, bool *has_change) {
+DifNode_t *ConstOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
-    CheckNodeAndConstOptimise(node->right, has_change);
-    CheckNodeAndConstOptimise(node->left, has_change);
+    CheckNodeAndConstOptimise(root, node->right, has_change);
+    CheckNodeAndConstOptimise(root, node->left, has_change);
 
     if (IsNumber(node->left) && IsNumber(node->right)) {
         double ans = EvaluateExpression(node);
+        size_t removed = CountSubTreeSize(node) - 1;
+
         DeleteNode(node->left);
         DeleteNode(node->right);
         node->left = node->right = NULL;
-
         node->type = kNumber;
         node->value.number = ans;
 
+        root->size -= removed;
         *has_change = true;
         return node;
     }
 
     if (!node->left && IsNumber(node->right)) {
         double ans = EvaluateExpression(node);
-        DeleteNode(node->right);
-        node->right = NULL;
+        size_t removed = CountSubTreeSize(node->right);
 
+        node->right = NULL;
         node->type = kNumber;
         node->value.number = ans;
 
+        DeleteNode(node);
+        root->size -= removed;
         *has_change = true;
         return node;
     }
@@ -86,16 +90,17 @@ DifNode_t *ConstOptimise(DifNode_t *node, bool *has_change) {
     return node;
 }
 
-DifNode_t *EraseNeutralElements(DifNode_t *node, bool *has_change) {
+DifNode_t *EraseNeutralElements(DifRoot *root, DifNode_t *node, bool *has_change) {
+    assert(root);
     assert(node);
     assert(has_change);
 
     if (node->left) {
-        node->left = EraseNeutralElements(node->left, has_change);
+        node->left = EraseNeutralElements(root, node->left, has_change);
     }
 
     if (node->right) {
-        node->right = EraseNeutralElements(node->right, has_change);
+        node->right = EraseNeutralElements(root, node->right, has_change);
     }
 
     if ((!node->left || !node->right) || !IsOperation(node)) {
@@ -105,153 +110,185 @@ DifNode_t *EraseNeutralElements(DifNode_t *node, bool *has_change) {
     OperationTypes operation = node->value.operation;
 
     if (operation == kOperationAdd) {
-        return AddOptimise(node, has_change);
+        return AddOptimise(root, node, has_change);
     }
     if (operation == kOperationSub) {
-        return SubOptimise(node, has_change);
+        return SubOptimise(root, node, has_change);
     } 
     if (operation == kOperationMul) {
-        return MulOptimise(node, has_change);
+        return MulOptimise(root, node, has_change);
     }
     if (operation == kOperationDiv) {
-        return DivOptimise(node, has_change);
+        return DivOptimise(root, node, has_change);
     }
     if (operation == kOperationPow) {
-        return PowOptimise(node, has_change);
+        return PowOptimise(root, node, has_change);
     }
 
     return node;
 }
 
 
-static DifNode_t *AddOptimise(DifNode_t *node, bool *has_change) {
+static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
+    assert(root);
     assert(node);
     assert(has_change);
 
     DifNode_t *copied_node = NULL;
 
-    if (IsZero(node->left)) {
-        copied_node = node->right;
-        node->left = node->right = NULL;
-        *has_change = true;
+   if (IsZero(node->left)) {
+        DifNode_t *res = node->right;
+
+        node->right = node->left = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
-        return copied_node;
+
+        *has_change = true;
+        return res;
     }
 
     if (IsZero(node->right)) {
-        copied_node = node->left;
-        node->left = node->right = NULL;
-        *has_change = true;
+        DifNode_t *res = node->left;
+
+        node->right = node->left = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
-        return copied_node;
+
+        *has_change = true;
+        return res;
     }
 
     return node;
 }
 
-#define MUL_(left, right) NewOperationNode(kOperationMul, left, right) 
+#define MUL_(left, right) NewOperationNode(root, kOperationMul, left, right) 
 
-static DifNode_t *SubOptimise(DifNode_t *node, bool *has_change) {
+static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
     if (IsZero(node->right)) {
-        DifNode_t *copied_node = node->left;
+        DifNode_t *res = node->left;
+
         node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
+
         *has_change = true;
-        return copied_node;
+        return res;
     }
 
 
     if (IsZero(node->left)) {
-        node->type = kOperation;
-        node->value.operation = kOperationMul;
-        node->left->value.number = -1;
-        //DeleteNode(node);
+        DifNode_t *x = node->right;
+
+        node->right = node->left = NULL; // удалить надо ли ноду
+        root->size -= CountSubTreeSize(node);
+        DeleteNode(node);
+
         *has_change = true;
-        return node;
+        return NewOperationNode(root, kOperationMul,
+            NEWN(-1), x);
     }
 
     return node;
 }
 #undef MUL_
 
-static DifNode_t *MulOptimise(DifNode_t *node, bool *has_change) {
+static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
     DifNode_t *new_node = NULL;
 
     if (IsOne(node->left)) {
-        new_node = node->right;
+        DifNode_t *res = node->right;
+
         node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
-        return new_node;
+
+        *has_change = true;
+        return res;
     }
 
     if (IsOne(node->right)) {
-        new_node = node->left;
+        DifNode_t *res = node->left;
+
         node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
-        return new_node;
+
+        *has_change = true;
+        return res;
     }
 
-    if ((IsZero(node->left)) || IsZero(node->right)) {
-        DeleteNode(node);
-        return NEWN(0);
-    }
+    if (IsZero(node->left) || IsZero(node->right)) {
+        root->size -= CountSubTreeSize(node);
+        DeleteNode(node); //
 
+        *has_change = true;
+        return NewNumber(root, 0);
+    }
     return node;
 }
 
-static DifNode_t *DivOptimise(DifNode_t *node, bool *has_change) {
+static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
     DifNode_t *new_node = NULL;
 
     if (IsOne(node->right)) {
-        new_node = node->right;
+        DifNode_t *res = node->left;
+
         node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
+
         *has_change = true;
-        return new_node;
+        return res;
     }
 
     if (IsZero(node->left)) {
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
-        *has_change = true;
-        return NEWN(0);
-    }
 
+        *has_change = true;
+        return NewNumber(root, 0);
+    }
     return node;
 }
 
-static DifNode_t *PowOptimise(DifNode_t *node, bool *has_change) {
+static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
 
     if (IsZero(node->left)) {
-        node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
+
         *has_change = true;
-        return NEWN(0);
+        return NewNumber(root, 0);
     }
 
     if (IsZero(node->right)) {
-        node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
+
         *has_change = true;
-        return NEWN(1);
+        return NewNumber(root, 1);
     }
 
     if (IsOne(node->right)) {
-        DifNode_t *new_node = node->left;
+        DifNode_t *res = node->left;
+
         node->left = node->right = NULL;
+        root->size -= CountSubTreeSize(node);
         DeleteNode(node);
+
         *has_change = true;
-        return new_node;
+        return res;
     }
 
     return node;
@@ -291,13 +328,24 @@ static bool IsOperation(DifNode_t *node) {
     return (node->type == kOperation);
 }
 
-static DifNode_t *CheckNodeAndConstOptimise(DifNode_t *node, 
+static DifNode_t *CheckNodeAndConstOptimise(DifRoot *root, DifNode_t *node, 
     bool *has_change) {
     assert(has_change);
 
     if (node && !IsNumber(node)) {
-        node = ConstOptimise(node, has_change);
+        node = ConstOptimise(root, node, has_change);
         if (!node) return NULL;
     }
     return node;
+}
+
+size_t FreeSubTree(DifNode_t *node) {
+    if (!node) return 0;
+
+    size_t count = 1;
+    count += FreeSubTree(node->left);
+    count += FreeSubTree(node->right);
+
+    free(node);
+    return count;
 }

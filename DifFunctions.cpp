@@ -17,7 +17,9 @@
 #include "Optimise.h"
 
 size_t DEFAULT_SIZE = 1;
-double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
+static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t ans, FILE *out, DumpInfo *DumpInfo);
+static void DoDerivativeInPos(DifRoot *root, DifNode_t *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out);
+static DifErrors DoGnuplot(DifRoot *root);
 
 DifErrors NodeCtor(DifNode_t **node, Value *value) {
     assert(node);
@@ -62,9 +64,8 @@ DifErrors DeleteNode(DifNode_t *node) {
         node->right = NULL;
     }
 
-    // if (node->type == kVariable) {
-    //     free(node->value.variable_name);
-    // }
+    node->parent = NULL;
+
     free(node);
 
     return kSuccess;
@@ -79,6 +80,14 @@ DifErrors TreeDtor(DifRoot *tree) {
     tree->size = 0;
 
     return kSuccess;
+}
+
+size_t CountSubTreeSize(DifNode_t *node) {
+    if (node == NULL) {
+        return 0;
+    }
+
+    return 1 + CountSubTreeSize(node->left) + CountSubTreeSize(node->right);
 }
 
 DifErrors InitArrOfVariable(VariableArr *arr, size_t capacity) {
@@ -151,95 +160,56 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
     assert(DumpInfo);
 
     DiffModes ans = kDerivative;
+    DifErrors err = kSuccess;
 
     bool flag_end = false;
     while (!flag_end) {
-    printf("Введите, что вы хотите сделать с введенным выражением: 1. Посчитать (н-ную) производную,\n");
-    printf("2. Посчитать значение (н-ной) производной в точке, 3. Посчитать значение выражения, 4. Разложить по формуле Тейлора, \n");
-    printf("5. Построить график, 6. Выйти:\n");
-    scanf("%d", &ans);
+        printf("Введите, что вы хотите сделать с введенным выражением: 1. Посчитать (н-ную) производную,\n");
+        printf("2. Посчитать значение (н-ной) производной в точке, 3. Посчитать значение выражения, 4. Разложить по формуле Тейлора, \n");
+        printf("5. Построить график, 6. Выйти:\n");
+        scanf("%d", &ans);
 
-    if (ans == kDerivativeInPos || ans == kCount) {
-        ReadVariableValue(Variable_Array);
-    }
+        if (ans == kDerivativeInPos || ans == kCount) {
+            ReadVariableValue(Variable_Array);
+        }
 
-    switch (ans) {
-        case (kDerivativeInPos):
-        case (kDerivative): {
-            printf("Введите, какую производную вы хотите посчитать:\n");
-            size_t ans2 = 0;
-            scanf("%zu", &ans2);
-
-            Forest forest = {};
-            ForestCtor(&forest, ans2);
-
-            DifNode_t *node_to_dif = root->root;
-            DifNode_t root2 = {};
-
-            for (size_t i = 1; i <= ans2; i++) {
-                DifNode_t *new_tree = Dif(node_to_dif, node_to_dif, "x", out);
-                forest.trees[i - 1].root = new_tree;
-                root2 = *forest.trees[i - 1].root;
-                DumpInfo->tree = &forest.trees[i - 1];
-
-                snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
-                DoTreeInGraphviz(&root2, DumpInfo, &root2);
-                DoDump(DumpInfo);
-                DoTex(forest.trees[i - 1].root, "x", out, false);
-
-                forest.trees[i - 1].root = OptimiseTree(forest.trees[i - 1].root, out);
-                DoTreeInGraphviz(forest.trees[i - 1].root, DumpInfo, forest.trees[i - 1].root);
-                snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Optimised tree after counting (%zu) derivative", i);
-                DoDump(DumpInfo);
-                //DoTex(forest.trees[i - 1].root, "x", out, false);
-
-                node_to_dif = forest.trees[i - 1].root;
-            }
-
-            if (ans == kDerivativeInPos) {
-                printf("Введите, для какой производной вы хотите посчитать значение в точке:\n");
+        switch (ans) {
+            case (kDerivativeInPos):
+            case (kDerivative): {
+                printf("Введите, какую производную вы хотите посчитать:\n");
                 size_t ans2 = 0;
                 scanf("%zu", &ans2);
-                double res = SolveEquation(root);
-                printf("Результат вычисления выражения значения %zu производной: %lf", ans2, res);
 
-                PrintSolution(root->root, res, out);
-                strcpy(DumpInfo->message, " Calculate expression in a position in derived expression");
-                DoTreeInGraphviz(&root2, DumpInfo, &root2);
-                DoDump(DumpInfo);
+                Forest forest = {};
+                ForestCtor(&forest, ans2);
+                DifNode_t root2 = {};
+                CHECK_ERROR_RETURN(DoNDif(&forest, root, &root2, ans2, out, DumpInfo));
+
+                if (ans == kDerivativeInPos) {
+                    DoDerivativeInPos(root, &root2, Variable_Array, DumpInfo, out);
+                }
+
+                printf("Скорее смотрите ДАМП и ТЕХ!!!\n");
+                ForestDtor(&forest);
+                break;
             }
-
-            printf("Скорее смотрите ДАМП и ТЕХ!!!\n");
-            ForestDtor(&forest);
-            break;
+            case (kCount): {
+                double res = SolveEquation(root);
+                printf("Результат вычисления выражения: %lf", res);
+                PrintSolution(root->root, res, out, Variable_Array);
+                break;
+            }
+            case (kGraph): {
+                CHECK_ERROR_RETURN(DoGnuplot(root));
+                break;
+            }
+            case (kExit):
+                flag_end = true;
+            case (kTeilor):
+            default:
+                return kSuccess;
         }
-        case (kCount): {
-            double res = SolveEquation(root);
-            printf("Результат вычисления выражения: %lf", res);
-            PrintSolution(root->root, res, out);
-            break;
-        }
-        case (kGraph): {
-            FILE_OPEN_AND_CHECK(gnuplotfile, "gnuplot.txt", "w");
-            PrintExpressionToFile(gnuplotfile, root);
-            fclose(gnuplotfile);
-            system("gnuplot -e \""
-            "set terminal pngcairo size 800,600;"
-            "set output 'my_points_plot.png';"
-            "set grid;"
-            "set xlabel 'X';"
-            "set ylabel 'Y';"
-            "plot 'gnuplot.txt' using 1:2 with linespoints pointtype 7 pointsize 1.5;"
-            "set output\"");
-            break;
-        }
-        case (kExit):
-            flag_end = true;
-        case (kTeilor):
-        default:
-            return kSuccess;
     }
-}
     return kSuccess;
 }
 
@@ -259,5 +229,68 @@ void PrintExpressionToFile(FILE *out, DifRoot *root) {
         fprintf(out, "%f\n", SolveEquation(root));
     }
     node_var->value.variable->variable_value = copied_value;
-    printf("asdfghjk");
+}
+
+static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t ans, FILE *out, DumpInfo *DumpInfo) {
+    assert(forest);
+    assert(root);
+    assert(out);
+    assert(DumpInfo);
+
+    DifRoot *node_to_dif = root;
+
+    for (size_t i = 1; i <= ans; i++) {
+        DifNode_t *new_tree = Dif(&forest->trees[i - 1], node_to_dif->root, "x", out);
+        forest->trees[i - 1].root = new_tree;
+        root2 = forest->trees[i - 1].root;
+        DumpInfo->tree = &forest->trees[i - 1];
+
+        snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
+        DoTreeInGraphviz(root2, DumpInfo, root2);
+        DoDump(DumpInfo);
+        fprintf(out, "\n\nПосчитаем %zu производную:\n\n", i);
+        DoTex(forest->trees[i - 1].root, "x", out);
+
+        forest->trees[i - 1].root = OptimiseTree(&forest->trees[i - 1], forest->trees[i - 1].root, out);
+        DoTreeInGraphviz(forest->trees[i - 1].root, DumpInfo, forest->trees[i - 1].root);
+        snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Optimised tree after counting (%zu) derivative", i);
+        DoDump(DumpInfo);
+
+        node_to_dif = &forest->trees[i - 1];
+    }
+
+    return kSuccess;
+}
+
+static void DoDerivativeInPos(DifRoot *root, DifNode_t *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out) {
+    assert(root);
+    assert(root2);
+    assert(Variable_Array);
+    assert(DumpInfo);
+    assert(out);
+
+    printf("Введите, для какой производной вы хотите посчитать значение в точке:\n");
+    size_t ans = 0;
+    scanf("%zu", &ans); //
+    double res = SolveEquation(root);
+    printf("Результат вычисления выражения значения %zu производной:\n %lf", ans, res);
+
+    PrintSolution(root->root, res, out, Variable_Array);
+    strcpy(DumpInfo->message, " Calculate expression in a position in derived expression");
+    DoTreeInGraphviz(root2, DumpInfo, root2);
+    DoDump(DumpInfo);
+}
+
+static DifErrors DoGnuplot(DifRoot *root) {
+    assert(root);
+
+    FILE_OPEN_AND_CHECK(gnuplotfile, "gnuplot.txt", "w");
+    PrintExpressionToFile(gnuplotfile, root);
+    fclose(gnuplotfile);
+    system("gnuplot -e \"" "set terminal pngcairo size 800,600;" "set output 'my_points_plot.png';"
+    "set grid;" "set xlabel 'X';" "set ylabel 'Y';"
+    "plot 'gnuplot.txt' using 1:2 with linespoints pointtype 7 pointsize 1.5;" "set output\"");
+    printf("Отлично, смотрите график функции в файле %s.\n", "my_points_plot.png");
+
+    return kSuccess;
 }

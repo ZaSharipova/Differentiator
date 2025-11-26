@@ -49,32 +49,14 @@ int main(void) {
     DoDump(&DumpInfo);
 
     FILE_OPEN_AND_CHECK(out, "diftex.tex", "w");
-    BeginTex(out);
+    BeginTex(out, root.root);
 
     CHECK_ERROR_RETURN(DiffPlay(&Variable_Array, &root, out, &DumpInfo));
-    // DifNode_t *new_tree = Dif(root.root, root.root, "x", out);
-    // DifRoot root2 = {};
-    // root2.root = new_tree;
-    // DumpInfo.tree = &root2;
-
-    // strcpy(DumpInfo.message, " Do derivative");
-    // DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
-    // DoDump(&DumpInfo);
-    // DoTex(root2.root, "x", out, false);
-
-    // root2.root = OptimiseTree(root2.root, out);
-    // DoTreeInGraphviz(root2.root, &DumpInfo, root2.root);
-    // DoDump(&DumpInfo);
-    // DoTex(root2.root, "x", out, false);
-
     EndTex(out);
     fclose(out);
     fclose(file);
     fclose(logfile);
 
-//     FILE *gnu_test = fopen("gnuplot_test.txt", "w");
-// fprintf(gnu_test, "Test123\n");
-// fclose(gnu_test);
     DtorVariableArray(&Variable_Array);
     TreeDtor(&root);
 }
