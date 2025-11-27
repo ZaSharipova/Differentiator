@@ -34,20 +34,23 @@ static bool IsOperation(DifNode_t *node);
 
 #define NEWN(number) NewNumber(root, number)
 
-DifNode_t *OptimiseTree(DifRoot *root, DifNode_t *node, FILE *out) {
+DifNode_t *OptimiseTree(DifRoot *root, DifNode_t *node, FILE *out, const char *main_var) {
     assert(root);
     assert(node);
     assert(out);
+    assert(main_var);
 
     bool has_change = true;
 
     while (has_change) {
         has_change = false;
         node = ConstOptimise(root, node, &has_change); 
-        if (has_change) DoTex(node, "x", out); // NULL
-        node = EraseNeutralElements(root, node, &has_change); //
-        if (has_change) DoTex(node, "x", out); // NULL
+        if (has_change) DoTex(node, main_var, out);
+        node = EraseNeutralElements(root, node, &has_change);
+        if (has_change) DoTex(node, main_var, out);
     }
+
+    node->parent = NULL;
     return node;
 }
 

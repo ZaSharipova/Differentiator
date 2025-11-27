@@ -54,7 +54,7 @@ void DoTexInner(DifNode_t *node, FILE *out) {
             break;
 
         case (kOperationMul):
-            if (node->left->type == kNumber && node->left->value.number < 0) fprintf(out, "(");
+            if (node->left->type == kNumber && node->left->value.number < 0) fprintf(out, "("); //function
             DoTexInner(node->left, out);
             if (node->left->type == kNumber && node->left->value.number < 0) fprintf(out, ")");
             fprintf(out, " \\cdot ");

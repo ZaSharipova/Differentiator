@@ -12,17 +12,18 @@
 #include "DoTex.h"
 #include "DoDump.h"
 #include "Calculate.h"
+#include "ReadInfixExpression.h"
 
 #include "Optimise.h"
 
 #define MAX_VARIABLE_SIZE 30
 
 #define INIT_DUMP_INFO(name)                                     \
-    DumpInfo DumpInfo = {};                                      \
-    DumpInfo.filename_to_write_dump = "alldump.html";            \
-    DumpInfo.file = fopen(DumpInfo.filename_to_write_dump, "w"); \
-    DumpInfo.filename_to_write_graphviz = "output.txt";          \
-    strcpy(DumpInfo.message, "Expression tree");
+    DumpInfo name = {};                                      \
+    dump_info.filename_to_write_dump = "alldump.html";            \
+    dump_info.file = fopen(dump_info.filename_to_write_dump, "w"); \
+    dump_info.filename_to_write_graphviz = "output.txt";          \
+    strcpy(dump_info.message, "Expression tree");
 
 int main(void) {
     FILE_OPEN_AND_CHECK(file, "expression.txt", "r");
@@ -43,19 +44,35 @@ int main(void) {
     ReadNodeFromFile(&root, file, logfile, &pos, root.root, Info.buf_ptr, &new_node, &Variable_Array, &i);
     root.root = new_node;
 
-    INIT_DUMP_INFO(DumpInfo);
-    DumpInfo.tree = &root;
-    DoTreeInGraphviz(root.root, &DumpInfo, root.root);
-    DoDump(&DumpInfo);
+    INIT_DUMP_INFO(dump_info);
+    dump_info.tree = &root;
+    DoTreeInGraphviz(root.root, &dump_info, root.root);
+    DoDump(&dump_info);
 
     FILE_OPEN_AND_CHECK(out, "diftex.tex", "w");
     BeginTex(out, root.root);
 
-    CHECK_ERROR_RETURN(DiffPlay(&Variable_Array, &root, out, &DumpInfo));
+    CHECK_ERROR_RETURN(DiffPlay(&Variable_Array, &root, out, &dump_info));
     EndTex(out);
     fclose(out);
     fclose(file);
     fclose(logfile);
+
+    
+    DifRoot rootnew = {};
+    DifRootCtor(&rootnew);
+    const char *string = "10*(30+20*10)+13$";
+    rootnew.root = GetGoal(&rootnew, &string);
+    if (!rootnew.root) {
+        DtorVariableArray(&Variable_Array);
+        TreeDtor(&root);
+        return kFailure;
+    }
+    
+    printf("%lf", SolveEquation(&rootnew));
+    dump_info.tree = &rootnew;
+    DoTreeInGraphviz(rootnew.root, &dump_info, rootnew.root);
+    DoDump(&dump_info);
 
     DtorVariableArray(&Variable_Array);
     TreeDtor(&root);
