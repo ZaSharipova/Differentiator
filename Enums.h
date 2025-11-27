@@ -40,12 +40,12 @@ enum OperationTypes {
 };
 
 enum DiffModes {
-    kDerivative      = 1,
-    kDerivativeInPos = 2,
-    kCount           = 3,
-    kTeilor          = 4,
-    kGraph           = 5,
-    kCountInfix      = 6,
+    kAll             = 1,
+    kDerivative      = 2,
+    kDerivativeInPos = 3,
+    kCount           = 4,
+    kTeilor          = 5,
+    kGraph           = 6,
     kExit            = 7,
 };
 

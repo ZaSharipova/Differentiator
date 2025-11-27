@@ -30,7 +30,10 @@ DifErrors NodeCtor(DifNode_t **node, Value *value) {
 
     if (value) {
         (*node)->value = *value; 
-    } 
+    } else {
+        (*node)->type = kNumber;
+        (*node)->value.number = 0;
+    }
     
     (*node)->left =  NULL;
     (*node)->right =  NULL;
@@ -142,6 +145,21 @@ DifErrors ForestCtor(Forest *forest, size_t size) {
 
     return kSuccess;
 }
+
+// DifErrors ResizeArray(Forest *forest)  {
+//     assert(forest);
+
+//     if (forest->size + 2 > forest->capacity) {
+//         Forest *ptr = (Forest *) calloc (forest->capacity += 2, sizeof(Forest));
+//         if (!ptr) {
+//             fprintf(stderr, "Memory error.\n");
+//             return kNoMemory;
+//         }
+//         arr->var_array = ptr;
+//     }
+
+//     return kSuccess;
+// }
 
 void ForestDtor(Forest *forest) {
     assert(forest);

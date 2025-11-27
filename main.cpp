@@ -31,9 +31,6 @@ int main(void) {
     DifRoot root = {};
     DifRootCtor(&root);
 
-    FileInfo Info = {};
-    DoBufRead(file, "expression.txt", &Info);
-
     VariableArr Variable_Array = {};
     DifErrors err = kSuccess;
     CHECK_ERROR_RETURN(InitArrOfVariable(&Variable_Array, 4));
@@ -41,23 +38,19 @@ int main(void) {
     size_t pos = 0;
     DifNode_t *new_node = NULL;
     int i = 0;
-    FILE_OPEN_AND_CHECK(logfile, "logfile_for_expression.txt", "w");
-    ReadNodeFromFile(&root, file, logfile, &pos, root.root, Info.buf_ptr, &new_node, &Variable_Array, &i);
-    root.root = new_node;
+
+    FILE_OPEN_AND_CHECK(out, "diftex.tex", "w");
+    BeginTex(out);
 
     INIT_DUMP_INFO(dump_info);
     dump_info.tree = &root;
-    DoTreeInGraphviz(root.root, &dump_info, root.root);
-    DoDump(&dump_info);
-
-    FILE_OPEN_AND_CHECK(out, "diftex.tex", "w");
-    BeginTex(out, root.root);
+    ReadInfix(&root, &dump_info, &Variable_Array, "input.txt", out);
 
     CHECK_ERROR_RETURN(DiffPlay(&Variable_Array, &root, out, &dump_info));
     EndTex(out);
     fclose(out);
     fclose(file);
-    fclose(logfile);
+    //fclose(logfile);
 
     DtorVariableArray(&Variable_Array);
     TreeDtor(&root);

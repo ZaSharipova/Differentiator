@@ -168,6 +168,10 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
             fprintf(stderr, "No such operation.\n");
             return NULL;
     }
+    PrintShrich(node, texfile);
+    fprintf(texfile, " = ");
+    DoTexInner(result, texfile);
+    fprintf(texfile, "\\end{dmath*}\n\n");
     
     // Вывод ПОСЛЕ дифференцирования текущего узла
     // if (result) {

@@ -56,6 +56,13 @@ void DoTexInner(DifNode_t *node, FILE *out) {
             break;
 
         case (kOperationMul):
+            // if (IsNegativeNumber(node->left) && abs(node->left->value.number + 1) < 1e-11) {
+            //     fprintf(out, "-");
+            //      if (IsNegativeNumber(node->right)) fprintf(out, "(");
+            //     DoTexInner(node->right, out);
+            //     if (IsNegativeNumber(node->right)) fprintf(out, ")");
+            //     break;
+            // }
             if (IsNegativeNumber(node->left)) fprintf(out, "(");
             DoTexInner(node->left, out);
             if (IsNegativeNumber(node->left)) fprintf(out, ")");
@@ -134,9 +141,8 @@ void DoTexInner(DifNode_t *node, FILE *out) {
     }
 }
 
-void BeginTex(FILE *out, DifNode_t *node) {
+void BeginTex(FILE *out) {
     assert(out);
-    assert(node);
 
     fprintf(out, "\\documentclass{article}\n");
     fprintf(out, "\\usepackage{amsmath}\n");
@@ -148,9 +154,6 @@ void BeginTex(FILE *out, DifNode_t *node) {
     fprintf(out, "\\begin{document}\n\\fontsize{7}{9}\\selectfont\n");
 
     fprintf(out, "Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным. \n\n\\vspace{1em}");
-    fprintf(out, "Будем работать с таким выражением: \n \\begin{dmath*}");
-    DoTexInner(node, out);
-    fprintf(out, "\\end{dmath*}\n\n");
 }
 
 void EndTex(FILE *out) {
@@ -191,3 +194,12 @@ void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *Varia
 static bool IsNegativeNumber(DifNode_t *node) {
     return (node->type == kNumber && node->value.number < 0);
 }
+
+void PrintShrich(DifNode_t *node, FILE *out) {
+    assert(node);
+    assert(out);
+
+    fprintf(out, "\n\n\\begin{dmath*}(");
+    DoTexInner(node, out);
+    fprintf(out, ")'");
+} 

@@ -10,7 +10,10 @@
 #include "Enums.h"
 #include "Structs.h"
 #include "DifFunctions.h"
-
+#include "ReadInfixExpression.h"
+#include "DoDump.h"
+#include "DoTex.h"
+#include "DoGraph.h"
 
 long long SizeOfFile(const char *filename) {
     assert(filename);
@@ -293,4 +296,41 @@ void ReadVariableValue(VariableArr *arr) {
         }
         
     }
+}
+
+DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile) {
+    assert(root);
+    assert(dump_info);
+    assert(Variable_Array);
+    assert(filename);
+    assert(texfile);
+
+    FILE_OPEN_AND_CHECK(file, filename, "r");
+
+    FileInfo Info = {};
+    DoBufRead(file, "expression.txt", &Info);
+    printf("%s", Info.buf_ptr);
+
+    // char *string = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
+    // fscanf(file, "%s", string);
+    fclose(file);
+
+    size_t pos = 0;
+    const char *new_string = Info.buf_ptr;
+    root->root = GetGoal(root, &new_string, Variable_Array, &pos);
+    if (!root->root) {
+        return kFailure;
+    }
+    
+    dump_info->tree = root;
+    //ReadVariableValue(Variable_Array);
+    strcpy(dump_info->message, "Expression read with infix form");
+    DoTreeInGraphviz(root->root, dump_info, root->root);
+
+    fprintf(texfile, "\n\nБыло введено такое выражение: \\begin{dmath*}\n");
+    DoTexInner(root->root, texfile);
+    fprintf(texfile, "\n\\end{dmath*}");
+    DoDump(dump_info);
+
+    return kSuccess;
 }

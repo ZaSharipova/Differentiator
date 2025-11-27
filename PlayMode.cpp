@@ -29,10 +29,10 @@
 
 static FILE *SelectInputFile(void);
 
-static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var);
-static void DoDerivativeInPos(DifRoot *root, DifNode_t *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out);
+static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var);
+static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var);
 static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array);
-static DifErrors CountInfix(DumpInfo *dump_info, VariableArr *Variable_Array);
+DifErrors CountInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array);
 
 static void DoSystemForGnuplot(const char *main_var);
 
@@ -45,28 +45,27 @@ static void PrintMenu(void);
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
                                   FILE *out, DumpInfo *DumpInfo, bool *flag_end);
 
+static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans);
+
 static const char *AskFilename(void);
 
-DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *DumpInfo) {
+DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *Dump_Info) {
     assert(Variable_Array);
     assert(root);
     assert(out);
-    assert(DumpInfo);
+    assert(Dump_Info);
 
     DifErrors err = kSuccess;
-    CHECK_ERROR_RETURN(VerifyTree(root));
+    // CHECK_ERROR_RETURN(VerifyTree(root));
 
     bool flag_end = false;
     while (!flag_end) {
         PrintMenu();
         DiffModes ans = kDerivative;
         scanf("%d", &ans);
-        
-        if (ans == kDerivativeInPos || ans == kCount) {
-            ReadVariableValue(Variable_Array);
-        }
 
-        err = DivideChoice(ans, root, Variable_Array, out, DumpInfo, &flag_end);
+        err = DivideChoice(ans, root, Variable_Array, out, Dump_Info, &flag_end);
         if (err != kSuccess) return err;
     }
     return kSuccess;
@@ -74,13 +73,13 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
 
 static void PrintMenu(void) {
     printf(CYAN "Введите, что вы хотите сделать с введенным выражением:\n"
-           YELLOW "1." RESET " Посчитать (н-ную) производную,\n"
-           YELLOW "2." RESET " Посчитать значение (н-ной) производной в точке,\n" 
-           YELLOW "3." RESET " Посчитать значение выражения,\n"
-           YELLOW "4." RESET " Разложить по формуле Тейлора,\n"
-           YELLOW "5." RESET " Построить график,\n"
-           YELLOW "6." RESET " Посчитать значение выражения, введенного в инф форме,\n"
-           YELLOW "7." RESET " Выйти:\n");
+            YELLOW "1." RESET "Посчитать все, \n"
+            YELLOW "2." RESET " Посчитать (н-ную) производную,\n"
+            YELLOW "3." RESET " Посчитать значение (н-ной) производной в точке,\n" 
+            YELLOW "4." RESET " Посчитать значение выражения,\n"
+            YELLOW "5." RESET " Разложить по формуле Тейлора,\n"
+            YELLOW "6." RESET " Построить график,\n"
+            YELLOW "7." RESET " Выйти:\n");
 }
 
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
@@ -93,6 +92,9 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
     assert(flag_end);
 
     switch (ans) {
+        case kAll:
+            return DoAllOptions(root, Variable_Array, out, DumpInfo, ans);
+
         case kDerivativeInPos:
         case kDerivative:
             return DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans);
@@ -102,9 +104,6 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
             
         case kGraph:
             return DoGnuplot(root, Variable_Array);
-            
-        case kCountInfix:
-            return CountInfix(DumpInfo, Variable_Array);
             
         case kExit:
             *flag_end = true;
@@ -121,6 +120,21 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
     }
 }
 
+static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
+    assert(ans);
+    assert(root);
+    assert(Variable_Array);
+    assert(out);
+    assert(DumpInfo);
+
+    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans);
+    DoCountCase(root, Variable_Array, out);
+    DoGnuplot(root, Variable_Array);
+
+    return kSuccess;
+
+}
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
                                       FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
     assert(ans);
@@ -136,7 +150,9 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
     Forest forest = {};
     ForestCtor(&forest, amount_of_dif);
     
-    DifNode_t root2 = {};
+    DifRoot root2 = {};
+    DifRootCtor(&root2);
+    //NodeCtor(&root2.root, 0);
     DifErrors err = DoNDif(&forest, root, &root2, amount_of_dif, out, DumpInfo, var);
     if (err != kSuccess) {
         ForestDtor(&forest);
@@ -144,7 +160,8 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
     }
 
     if (ans == kDerivativeInPos) {
-        DoDerivativeInPos(root, &root2, Variable_Array, DumpInfo, out);
+        //printf()
+        DoDerivativeInPos(&root2, Variable_Array, DumpInfo, out, amount_of_dif, var);
     }
 
     printf("Скорее смотрите ДАМП и ТЕХ!!!\n");
@@ -184,7 +201,7 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     FindMainVar(node, main_var, &node_var);
     double copied_value = node_var->value.variable->variable_value;
 
-    for (double i = -10.0; i < 10.0; i += 0.5) {
+    for (double i = -50.0; i < 50.0; i += 0.5) {
         node_var->value.variable->variable_value = i;
         fprintf(out, "%f ", i);
         fprintf(out, "%f\n", SolveEquation(root));
@@ -192,7 +209,7 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     node_var->value.variable->variable_value = copied_value;
 }
 
-static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var) {
+static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var) {
     assert(forest);
     assert(root);
     assert(out);
@@ -202,15 +219,20 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t 
     DifRoot *node_to_dif = root;
 
     for (size_t i = 1; i <= ans; i++) {
+        fprintf(out, "\n\n\\textbf{Посчитаем %zu производную:}\n\n", i);
         DifNode_t *new_tree = Dif(&forest->trees[i - 1], node_to_dif->root, main_var, out);
+        if (!new_tree) {
+            fprintf(stderr, "Dif failed on derivative %zu\n", i);
+            ForestDtor(forest);
+            return kFailure;
+        }
         forest->trees[i - 1].root = new_tree;
-        root2 = forest->trees[i - 1].root;
+        root2->root = forest->trees[i - 1].root;
 
         DumpInfo->tree = &forest->trees[i - 1];
         snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
-        DoTreeInGraphviz(root2, DumpInfo, root2);
+        DoTreeInGraphviz(root2->root, DumpInfo, root2->root);
         DoDump(DumpInfo);
-        fprintf(out, "\n\n\\textbf{Посчитаем %zu производную:}\n\n", i);
         DoTex(forest->trees[i - 1].root, main_var, out);
 
         forest->trees[i - 1].root = OptimiseTree(&forest->trees[i - 1], forest->trees[i - 1].root, out, main_var);
@@ -218,28 +240,27 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t 
         snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Optimised tree after counting (%zu) derivative", i);
         DoDump(DumpInfo);
 
+        root2->root = forest->trees[ans-1].root;
         node_to_dif = &forest->trees[i - 1];
     }
 
     return kSuccess;
 }
 
-static void DoDerivativeInPos(DifRoot *root, DifNode_t *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out) {
-    assert(root);
+static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var) {
     assert(root2);
     assert(Variable_Array);
     assert(DumpInfo);
     assert(out);
 
-    printf(MAGENTA "Введите, для какой производной вы хотите посчитать значение в точке:\n" RESET);
-    size_t ans = 0;
-    scanf("%zu", &ans); //
-    double res = SolveEquation(root);
-    printf("Результат вычисления выражения значения %zu производной: %lf\n", ans, res);
+    ReadVariableValue(Variable_Array);
+    double res = SolveEquation(root2);
+    printf("Результат вычисления выражения значения %zu производной: %lf\n", amount_of_dif, res);
 
-    PrintSolution(root->root, res, out, Variable_Array);
+    PrintSolution(root2->root, res, out, Variable_Array);
     strcpy(DumpInfo->message, " Calculate expression in a position in derived expression");
-    DoTreeInGraphviz(root2, DumpInfo, root2);
+    DoTreeInGraphviz(root2->root, DumpInfo, root2->root);
+    PrintExpressionResultToFile(out, root2, main_var);
     DoDump(DumpInfo);
 }
 
@@ -259,35 +280,6 @@ static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array) {
 
     DoSystemForGnuplot(main_var);
     printf("Отлично, смотрите график функции в файле %s.\n", "my_points_plot.png");
-
-    return kSuccess;
-}
-
-static DifErrors CountInfix(DumpInfo *dump_info, VariableArr *Variable_Array) {
-    DifRoot rootnew = {};
-    DifRootCtor(&rootnew);
-    
-    FILE *file = SelectInputFile();
-
-    if (file == stdin) printf(MAGENTA "Введите выражение в инфиксной форме, результат вычисления которого вы хотите узнать:\n" RESET);
-    char *string = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
-    fscanf(file, "%s", string);
-    const char *temp_string = string;
-
-    if (file != stdin) fclose(file);
-
-    rootnew.root = GetGoal(&rootnew, &temp_string);
-    if (!rootnew.root) {
-        return kFailure;
-    }
-    
-    printf("Результат вычисления значения выражения: %lf\n", SolveEquation(&rootnew));
-    dump_info->tree = &rootnew;
-    strcpy(dump_info->message, "Expression read with infix form");
-    DoTreeInGraphviz(rootnew.root, dump_info, rootnew.root);
-    DoDump(dump_info);
-
-    TreeDtor(&rootnew);
 
     return kSuccess;
 }
