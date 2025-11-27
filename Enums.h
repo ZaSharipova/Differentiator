@@ -41,7 +41,8 @@ enum DiffModes {
     kCount           = 3,
     kTeilor          = 4,
     kGraph           = 5,
-    kExit            = 6,
+    kCountInfix      = 6,
+    kExit            = 7,
 };
 
 #endif //ENUMS_H_

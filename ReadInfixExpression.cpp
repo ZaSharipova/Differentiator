@@ -71,13 +71,13 @@ DifNode_t *GetPrimary(DifRoot *root, const char **string) {
         if (**string == ')') {
             (*string)++;
         } else {
-            fprintf(stderr, "SYNTAX_ERROR_P: expected ')', got %c", **string);
+            fprintf(stderr, "SYNTAX_ERROR_P: expected ')', got '%c'", **string);
             return NULL;
         }
         return val;
 
     }
-    
+
     CHECK_NULL_RETURN(value_number, GetNumber(root, string));
     if (value_number) {
         return value_number;
@@ -138,7 +138,7 @@ DifNode_t *GetGoal(DifRoot *root, const char **string) {
     if (**string == '$') {
         (*string)++;
     } else {
-        fprintf(stderr, "SYNTAX_ERROR_G: expected '$', got %c", **string);
+        fprintf(stderr, "SYNTAX_ERROR_G: expected '$', got '%c'", **string);
         return NULL;
     }
     return val;

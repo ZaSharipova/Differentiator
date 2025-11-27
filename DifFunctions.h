@@ -18,13 +18,8 @@ DifErrors InitArrOfVariable(VariableArr *arr, size_t capacity);
 DifErrors ResizeArray(VariableArr *arr);
 DifErrors DtorVariableArray(VariableArr *arr);
 
-DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *DumpInfo);
-
 DifErrors ForestCtor(Forest *forest, size_t size);
 void ForestDtor(Forest *forest);
 
-void PrintExpressionToFile(FILE *out, DifRoot *root);
-
 size_t CountSubTreeSize(DifNode_t *node);
-
 #endif //DIF_FUNCTIONS_H_

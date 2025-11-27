@@ -13,6 +13,7 @@
 #include "DoDump.h"
 #include "Calculate.h"
 #include "ReadInfixExpression.h"
+#include "PlayMode.h"
 
 #include "Optimise.h"
 
@@ -57,22 +58,6 @@ int main(void) {
     fclose(out);
     fclose(file);
     fclose(logfile);
-
-    
-    DifRoot rootnew = {};
-    DifRootCtor(&rootnew);
-    const char *string = "10*(30+20*10)+13$";
-    rootnew.root = GetGoal(&rootnew, &string);
-    if (!rootnew.root) {
-        DtorVariableArray(&Variable_Array);
-        TreeDtor(&root);
-        return kFailure;
-    }
-    
-    printf("%lf", SolveEquation(&rootnew));
-    dump_info.tree = &rootnew;
-    DoTreeInGraphviz(rootnew.root, &dump_info, rootnew.root);
-    DoDump(&dump_info);
 
     DtorVariableArray(&Variable_Array);
     TreeDtor(&root);

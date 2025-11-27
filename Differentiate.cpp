@@ -20,17 +20,17 @@ DifNode_t *NewOperationNode(DifRoot *root, OperationTypes op_type, DifNode_t *le
 #define CR CopyNode(root, node->right)
 #define DL Dif(root, node->left, main_var, texfile)
 #define DR Dif(root, node->right, main_var, texfile)
+#define NEWN(number) NewNumber(root, number)
 #define ADD_(left, right) NewOperationNode(root, kOperationAdd, left, right)
 #define SUB_(left, right) NewOperationNode(root, kOperationSub, left, right)
 #define MUL_(left, right) NewOperationNode(root, kOperationMul, left, right) 
 #define DIV_(left, right) NewOperationNode(root, kOperationDiv, left, right) 
 #define POW_(left, right) NewOperationNode(root, kOperationPow, left, right)
-#define SIN_(right) NewOperationNode(root, kOperationSin, NULL, right)
-#define COS_(right) NewOperationNode(root, kOperationCos, NULL, right)
-#define SINH_(right) NewOperationNode(root, kOperationSinh, NULL, right)
-#define COSH_(right) NewOperationNode(root, kOperationCosh, NULL, right)
-#define LN_(right) NewOperationNode(root, kOperationLn, NULL, right)
-#define NEWN(number) NewNumber(root, number)
+#define SIN_(right) NewOperationNode(root, kOperationSin, NEWN(0), right)
+#define COS_(right) NewOperationNode(root, kOperationCos, NEWN(0), right)
+#define SINH_(right) NewOperationNode(root, kOperationSinh, NEWN(0), right)
+#define COSH_(right) NewOperationNode(root, kOperationCosh, NEWN(0), right)
+#define LN_(right) NewOperationNode(root, kOperationLn, NEWN(0), right)
 
 DifNode_t *NewNumber(DifRoot *root, double value) {
     assert(root);
