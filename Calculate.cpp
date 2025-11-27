@@ -7,22 +7,6 @@
 
 #include "DifFunctions.h"
 
-static double FindVariableValue(VariableInfo *arr, const char *var_name) {
-    assert(arr);
-    assert(var_name);
-
-    for (size_t i = 0; i < MAX_VARIABLES; i++) {
-        if (strcmp(arr[i].variable_name, var_name) == 0) {
-            return arr[i].variable_value;
-        }
-        if (strcmp(arr[i].variable_name, "\0")) {
-            break;
-        }
-    }
-    
-    return 0;
-}
-
 double SolveEquation(DifRoot *root) {
     assert(root);
 

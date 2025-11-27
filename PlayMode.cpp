@@ -66,7 +66,7 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
             ReadVariableValue(Variable_Array);
         }
 
-        DifErrors err = DivideChoice(ans, root, Variable_Array, out, DumpInfo, &flag_end);
+        err = DivideChoice(ans, root, Variable_Array, out, DumpInfo, &flag_end);
         if (err != kSuccess) return err;
     }
     return kSuccess;
@@ -338,6 +338,7 @@ static const char *AskFilename(void) {
     printf(MAGENTA "Введите название файла, из которого нужно считать выражение:" RESET);
     char filename[MAX_TEXT_SIZE] = {};
     scanf("%s", filename);
+    const char *filename_out = filename;
 
-    return filename;
+    return filename_out;
 }

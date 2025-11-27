@@ -37,7 +37,7 @@ DifNode_t *GetString(DifRoot *root, const char **string) {
     assert(root);
     assert(string);
 
-    static size_t pos_in_arr = 0;
+    //static size_t pos_in_arr = 0;
     char *buf = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
     int pos = 0;
 

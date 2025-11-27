@@ -203,8 +203,6 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     assert(node);
     assert(has_change);
 
-    DifNode_t *new_node = NULL;
-
     if (IsOne(node->left)) {
         DifNode_t *res = node->right;
 
@@ -240,8 +238,6 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
 static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
     assert(has_change);
-
-    DifNode_t *new_node = NULL;
 
     if (IsOne(node->right)) {
         DifNode_t *res = node->left;
