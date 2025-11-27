@@ -18,6 +18,15 @@
 #include "ReadInfixExpression.h"
 #include "DifFunctions.h"
 
+#define RESET   "\033[0m"
+#define WHITE   "\033[1;30m"
+#define RED     "\033[1;31m"
+#define GREEN   "\033[1;32m"
+#define YELLOW  "\033[1;33m"
+#define BLUE    "\033[1;34m"
+#define MAGENTA "\033[1;35m"
+#define CYAN    "\033[1;36m"
+
 static FILE *SelectInputFile(void);
 
 static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var);
@@ -33,7 +42,7 @@ static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *o
 static void ReadDerivativeParameters(char *var, size_t *amount_of_dif);
 
 static void PrintMenu(void);
-static DifErrors ProcessUserChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
+static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
                                   FILE *out, DumpInfo *DumpInfo, bool *flag_end);
 
 static const char *AskFilename(void);
@@ -43,6 +52,9 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
     assert(root);
     assert(out);
     assert(DumpInfo);
+
+    DifErrors err = kSuccess;
+    CHECK_ERROR_RETURN(VerifyTree(root));
 
     bool flag_end = false;
     while (!flag_end) {
@@ -54,24 +66,24 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
             ReadVariableValue(Variable_Array);
         }
 
-        DifErrors err = ProcessUserChoice(ans, root, Variable_Array, out, DumpInfo, &flag_end);
+        DifErrors err = DivideChoice(ans, root, Variable_Array, out, DumpInfo, &flag_end);
         if (err != kSuccess) return err;
     }
     return kSuccess;
 }
 
 static void PrintMenu(void) {
-    printf("Введите, что вы хотите сделать с введенным выражением:\n"
-           "1. Посчитать (н-ную) производную,\n"
-           "2. Посчитать значение (н-ной) производной в точке,\n" 
-           "3. Посчитать значение выражения,\n"
-           "4. Разложить по формуле Тейлора,\n"
-           "5. Построить график,\n"
-           "6. Посчитать значение выражения, введенного в инф форме,\n"
-           "7. Выйти:\n");
+    printf(CYAN "Введите, что вы хотите сделать с введенным выражением:\n"
+           YELLOW "1." RESET " Посчитать (н-ную) производную,\n"
+           YELLOW "2." RESET " Посчитать значение (н-ной) производной в точке,\n" 
+           YELLOW "3." RESET " Посчитать значение выражения,\n"
+           YELLOW "4." RESET " Разложить по формуле Тейлора,\n"
+           YELLOW "5." RESET " Построить график,\n"
+           YELLOW "6." RESET " Посчитать значение выражения, введенного в инф форме,\n"
+           YELLOW "7." RESET " Выйти:\n");
 }
 
-static DifErrors ProcessUserChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
+static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
                                   FILE *out, DumpInfo *DumpInfo, bool *flag_end) {
     assert(ans);
     assert(root);
@@ -144,9 +156,9 @@ static void ReadDerivativeParameters(char *main_var, size_t *amount_of_dif) {
     assert(main_var);
     assert(amount_of_dif);
 
-    printf("Введите, по какой переменной вы хотите посчитать производную:\n");
+    printf(MAGENTA "Введите, по какой переменной вы хотите посчитать производную:\n" RESET);
     scanf("%s", main_var);
-    printf("Введите, какую производную вы хотите посчитать:\n");
+    printf(MAGENTA "Введите, какую производную вы хотите посчитать:\n" RESET);
     scanf("%zu", amount_of_dif);
 }
 
@@ -198,7 +210,7 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifNode_t *root2, size_t 
         snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
         DoTreeInGraphviz(root2, DumpInfo, root2);
         DoDump(DumpInfo);
-        fprintf(out, "\n\nПосчитаем %zu производную:\n\n", i);
+        fprintf(out, "\n\n\\textbf{Посчитаем %zu производную:}\n\n", i);
         DoTex(forest->trees[i - 1].root, main_var, out);
 
         forest->trees[i - 1].root = OptimiseTree(&forest->trees[i - 1], forest->trees[i - 1].root, out, main_var);
@@ -219,11 +231,11 @@ static void DoDerivativeInPos(DifRoot *root, DifNode_t *root2, VariableArr *Vari
     assert(DumpInfo);
     assert(out);
 
-    printf("Введите, для какой производной вы хотите посчитать значение в точке:\n");
+    printf(MAGENTA "Введите, для какой производной вы хотите посчитать значение в точке:\n" RESET);
     size_t ans = 0;
     scanf("%zu", &ans); //
     double res = SolveEquation(root);
-    printf("Результат вычисления выражения значения %zu производной:\n %lf", ans, res);
+    printf("Результат вычисления выражения значения %zu производной: %lf\n", ans, res);
 
     PrintSolution(root->root, res, out, Variable_Array);
     strcpy(DumpInfo->message, " Calculate expression in a position in derived expression");
@@ -257,7 +269,7 @@ static DifErrors CountInfix(DumpInfo *dump_info, VariableArr *Variable_Array) {
     
     FILE *file = SelectInputFile();
 
-    if (file == stdin) printf("Введите выражение в инфиксной форме, результат вычисления которого вы хотите узнать:\n");
+    if (file == stdin) printf(MAGENTA "Введите выражение в инфиксной форме, результат вычисления которого вы хотите узнать:\n" RESET);
     char *string = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
     fscanf(file, "%s", string);
     const char *temp_string = string;
@@ -269,11 +281,13 @@ static DifErrors CountInfix(DumpInfo *dump_info, VariableArr *Variable_Array) {
         return kFailure;
     }
     
-    printf("Результат вычисления значения выражения: %lf", SolveEquation(&rootnew));
+    printf("Результат вычисления значения выражения: %lf\n", SolveEquation(&rootnew));
     dump_info->tree = &rootnew;
     strcpy(dump_info->message, "Expression read with infix form");
     DoTreeInGraphviz(rootnew.root, dump_info, rootnew.root);
     DoDump(dump_info);
+
+    TreeDtor(&rootnew);
 
     return kSuccess;
 }
@@ -299,15 +313,14 @@ static void DoSystemForGnuplot(const char *main_var) {
 }
 
 static FILE *SelectInputFile(void) {
-    printf("Вы хотите ввести выражение из консоли или из файла?\n"
+    printf(MAGENTA "Вы хотите ввести выражение из консоли или из файла?\n"
            "1. Консоль,\n"
-           "2. Файл:\n");
+           "2. Файл:\n" RESET);
 
     int ans = 0;
     scanf("%d", &ans);
 
     if (ans == 1) {
-        printf("Введите выражение в инфиксной форме:\n");
         return stdin;
     }
 
@@ -322,7 +335,7 @@ static FILE *SelectInputFile(void) {
 }
 
 static const char *AskFilename(void) {
-    printf("Введите название файла, из которого нужно считать выражение:");
+    printf(MAGENTA "Введите название файла, из которого нужно считать выражение:" RESET);
     char filename[MAX_TEXT_SIZE] = {};
     scanf("%s", filename);
 

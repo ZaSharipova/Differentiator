@@ -22,4 +22,5 @@ DifErrors ForestCtor(Forest *forest, size_t size);
 void ForestDtor(Forest *forest);
 
 size_t CountSubTreeSize(DifNode_t *node);
+DifErrors VerifyTree(DifRoot *root);
 #endif //DIF_FUNCTIONS_H_

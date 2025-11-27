@@ -36,7 +36,7 @@ DifNode_t *NewNumber(DifRoot *root, double value) {
     assert(root);
 
     DifNode_t *new_node = NULL;
-    NodeCtor(&new_node, NULL); //
+    NodeCtor(&new_node, NULL);
 
     root->size ++;
     new_node->type = kNumber;

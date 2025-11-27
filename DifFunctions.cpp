@@ -150,3 +150,47 @@ void ForestDtor(Forest *forest) {
 
     free(forest->trees);
 }
+
+static size_t VerifySubTree(DifNode_t *node, DifNode_t *parent, DifErrors *error) {
+    if (!node) return 0;
+
+    if (node->parent != parent) {
+        fprintf(stderr, "Parent mismatch at node %p\n", (void*)node);
+        *error = kWrongParent;
+    }
+
+    if (node->left == node || node->right == node) {
+        fprintf(stderr, "Cycle detected at node %p\n", (void*)node);
+        *error = kHasCycle;
+        return 0;
+    }
+
+    size_t left_count  = VerifySubTree(node->left, node, error);
+    size_t right_count = VerifySubTree(node->right, node, error);
+
+    return 1 + left_count + right_count;
+}
+
+DifErrors VerifyTree(DifRoot *root) {
+    if (!root) {
+        fprintf(stderr, "Root is NULL!\n");
+        return kZeroRoot;
+    }
+
+    DifErrors error = kSuccess;
+    size_t counted_size = VerifySubTree(root->root, NULL, &error);
+
+    if (counted_size != root->size) {
+        fprintf(stderr, "Size mismatch: counted %zu, root->size %zu\n",
+                counted_size, root->size);
+        error = kWrongTreeSize;
+    }
+
+    if (error) {
+        fprintf(stderr, "Tree verification FAILED.\n");
+        return error;
+    }
+
+    
+    return kSuccess;
+}

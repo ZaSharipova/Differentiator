@@ -112,6 +112,9 @@ static OpEntry operations[] = {
     {"ln",    kOperationLn},
     {"arctg", kOperationArctg},
     {"pow",   kOperationPow},
+    {"sh",    kOperationSinh},
+    {"ch",    kOperationCosh},
+    {"th",    kOperationTgh},
 };
 
 static OperationTypes ParseOperator(const char *string) {

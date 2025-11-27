@@ -5,6 +5,8 @@
 #include "Enums.h"
 #include "Structs.h"
 
+static bool IsNegativeNumber(DifNode_t *node);
+
 const char *TexPhrasesArray[] = {
     "Путём нетрудных преобразований",
     "Заметим, что",
@@ -54,13 +56,13 @@ void DoTexInner(DifNode_t *node, FILE *out) {
             break;
 
         case (kOperationMul):
-            if (node->left->type == kNumber && node->left->value.number < 0) fprintf(out, "("); //function
+            if (IsNegativeNumber(node->left)) fprintf(out, "(");
             DoTexInner(node->left, out);
-            if (node->left->type == kNumber && node->left->value.number < 0) fprintf(out, ")");
+            if (IsNegativeNumber(node->left)) fprintf(out, ")");
             fprintf(out, " \\cdot ");
-            if (node->right->type == kNumber && node->right->value.number < 0) fprintf(out, "(");
+            if (IsNegativeNumber(node->right)) fprintf(out, "(");
             DoTexInner(node->right, out);
-            if (node->right->type == kNumber && node->right->value.number < 0) fprintf(out, ")");
+            if (IsNegativeNumber(node->right)) fprintf(out, ")");
             break;
 
         case (kOperationDiv):
@@ -184,4 +186,8 @@ void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *Varia
     fprintf(out, "\n\n\\begin{dmath*}\n");
     DoTexInner(node, out);
     fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
+}
+
+static bool IsNegativeNumber(DifNode_t *node) {
+    return (node->type == kNumber && node->value.number < 0);
 }

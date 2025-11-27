@@ -9,6 +9,10 @@ enum DifErrors {
     kSyntaxError,
     kNoMemory,
     kFailure,
+    kZeroRoot,
+    kWrongTreeSize,
+    kWrongParent,
+    kHasCycle,
     kErrorOpening,
 };
 
