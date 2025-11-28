@@ -14,18 +14,13 @@
 #include "DoDump.h"
 #include "DoTex.h"
 
-double eps = 1e-11;
-
 static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 
-size_t FreeSubTree(DifNode_t *node);
-
-static DifNode_t *CheckNodeAndConstOptimise(DifRoot *root, DifNode_t *node, 
-    bool *has_change);
+static DifNode_t *CheckNodeAndConstOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 
 static bool IsZero(DifNode_t *node);
 static bool IsOne(DifNode_t *node);
@@ -63,7 +58,6 @@ DifNode_t *ConstOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
 
     if (IsNumber(node->left) && IsNumber(node->right)) {
         double ans = EvaluateExpression(node);
-        // size_t removed = CountSubTreeSize(node) - 1;
 
         DeleteNode(node->left);
         DeleteNode(node->right);
@@ -337,15 +331,4 @@ static DifNode_t *CheckNodeAndConstOptimise(DifRoot *root, DifNode_t *node,
         if (!node) return NULL;
     }
     return node;
-}
-
-size_t FreeSubTree(DifNode_t *node) {
-    if (!node) return 0;
-
-    size_t count = 1;
-    count += FreeSubTree(node->left);
-    count += FreeSubTree(node->right);
-
-    free(node);
-    return count;
 }

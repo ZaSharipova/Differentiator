@@ -7,9 +7,9 @@
 void BeginTex(FILE *out);
 void EndTex(FILE *out);
 void DoTexInner(DifNode_t *node, FILE *out);
-void DoTexStep(DifNode_t *root, DifNode_t *current, const char *var, FILE *out);
 
 void DoTex(DifNode_t *node, const char *value, FILE *out);
 void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr);
-void PrintShrich(DifNode_t *node, FILE *out);
+void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out);
+
 #endif //DO_TEX_H_

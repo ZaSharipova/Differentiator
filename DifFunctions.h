@@ -8,9 +8,6 @@
 DifErrors NodeCtor(DifNode_t **node, Value *value);
 DifErrors DifRootCtor(DifRoot *root);
 
-// double SolveEquation(DifRoot *root, VariableInfo *arr);
-// double EvaluateExpression(DifNode_t *node, VariableInfo *arr);
-
 DifErrors TreeDtor(DifRoot *tree);
 DifErrors DeleteNode(DifNode_t *node);
 
@@ -19,8 +16,10 @@ DifErrors ResizeArray(VariableArr *arr);
 DifErrors DtorVariableArray(VariableArr *arr);
 
 DifErrors ForestCtor(Forest *forest, size_t size);
+DifErrors ResizeForest(Forest *forest, size_t new_size);
 void ForestDtor(Forest *forest);
 
 size_t CountSubTreeSize(DifNode_t *node);
 DifErrors VerifyTree(DifRoot *root);
+
 #endif //DIF_FUNCTIONS_H_

@@ -21,41 +21,33 @@ double EvaluateExpression(DifNode_t *node) {
     }
     if (node->type == kVariable) {
         return node->value.variable->variable_value;
-        //return FindVariableValue(arr, node->value.variable->variable_name);
     }
 
     switch (node->value.operation) {
     case (kOperationAdd):
         return EvaluateExpression(node->left) +
             EvaluateExpression(node->right);
-
     case (kOperationSub):
         return EvaluateExpression(node->left) -
             EvaluateExpression(node->right);
-
     case (kOperationMul):
         return EvaluateExpression(node->left) *
             EvaluateExpression(node->right);
-
     case (kOperationDiv): {
         double right = EvaluateExpression(node->right);
-        if (right < 1e-12) {
+        if (fabs(right) < eps) {
             fprintf(stderr, "Division by zero.\n");
             return 0;
         }
         return EvaluateExpression(node->left) / right;
     }
-
     case (kOperationPow):
         return pow(EvaluateExpression(node->left),
                 EvaluateExpression(node->right));
-
     case (kOperationSin):
         return sin(EvaluateExpression(node->right));
-
     case (kOperationCos):
         return cos(EvaluateExpression(node->right));
-
     case (kOperationTg):
         return tan(EvaluateExpression(node->right));
     case (kOperationLn):

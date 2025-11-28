@@ -15,7 +15,93 @@
 #include "DoTex.h"
 #include "DoGraph.h"
 
-long long SizeOfFile(const char *filename) {
+static long long SizeOfFile(const char *filename);
+static char *ReadToBuf(const char *filename, FILE *file, size_t filesize);
+static void DoBufRead(FILE *file, const char *filename, FileInfo *Info);
+static void SkipSpaces(char *buffer, size_t *pos);
+static Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos);
+static OperationTypes ParseOperator(const char *string);
+static bool ParseNumber(const char *string, double *out_val);
+static DifErrors ParseVariable(char *string, VariableArr *arr, int *pos, Value *val);
+Value CheckType(Dif_t *ptr, DifNode_t *node, VariableArr *arr, int *pos);
+static DifErrors ParseMainNode(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, Dif_t buffer,
+    DifNode_t **node_to_add, VariableArr *arr, int *i);
+static DifErrors ParseNilNode(size_t *pos, DifNode_t **node_to_add);
+static DifErrors SyntaxErrorNode(size_t pos, char c);
+
+DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, 
+    Dif_t buffer, DifNode_t **node_to_add, VariableArr *arr, int *i) {
+    assert(tree);
+    assert(file);
+    assert(logfile);
+    assert(pos);
+    assert(arr);
+    assert(i);
+
+    SkipSpaces(buffer, pos);
+    fprintf(logfile, "\n%s", buffer + *pos);
+
+    if (buffer[*pos] == '(') {
+        return ParseMainNode(tree, file, logfile, pos, parent, buffer, node_to_add, arr, i);
+    }
+
+    if (strncmp(buffer + *pos, "nil", sizeof("nil") - 1) == 0) {
+        return ParseNilNode(pos, node_to_add);
+    }
+
+    return SyntaxErrorNode(*pos, buffer[*pos]);
+}
+
+
+void ReadVariableValue(VariableArr *arr) {
+    assert(arr);
+
+    for (size_t pos = 0; pos < arr->size; pos++) {
+        printf("Введите значение переменной %s:\n", arr->var_array[pos].variable_name);
+        if (scanf("%lf", &arr->var_array[pos].variable_value) != 1) {
+            fprintf(stderr, "Ошибка ввода значения переменной %s.\n", arr->var_array[pos].variable_name);
+            arr->var_array[pos].variable_value = 0; //
+        }
+        
+    }
+}
+
+DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile) {
+    assert(root);
+    assert(dump_info);
+    assert(Variable_Array);
+    assert(filename);
+    assert(texfile);
+
+    FILE_OPEN_AND_CHECK(file, filename, "r");
+
+    FileInfo Info = {};
+    DoBufRead(file, "expression.txt", &Info);
+    printf("%s", Info.buf_ptr);
+
+    fclose(file);
+
+    size_t pos = 0;
+    const char *new_string = Info.buf_ptr;
+    root->root = GetGoal(root, &new_string, Variable_Array, &pos);
+    if (!root->root) {
+        return kFailure;
+    }
+    
+    dump_info->tree = root;
+
+    strcpy(dump_info->message, "Expression read with infix form");
+    DoTreeInGraphviz(root->root, dump_info, root->root);
+
+    fprintf(texfile, "\n\nБыло введено такое выражение: \\begin{dmath*}\n");
+    DoTexInner(root->root, texfile);
+    fprintf(texfile, "\n\\end{dmath*}");
+    DoDump(dump_info);
+
+    return kSuccess;
+}
+
+static long long SizeOfFile(const char *filename) {
     assert(filename);
 
     struct stat stbuf = {};
@@ -29,7 +115,7 @@ long long SizeOfFile(const char *filename) {
     return stbuf.st_size;
 }
 
-char *ReadToBuf(const char *filename, FILE *file, size_t filesize) {
+static char *ReadToBuf(const char *filename, FILE *file, size_t filesize) {
     assert(filename);
     assert(file);
 
@@ -56,7 +142,7 @@ char *ReadToBuf(const char *filename, FILE *file, size_t filesize) {
     return buf_in;
 }
 
-void DoBufRead(FILE *file, const char *filename, FileInfo *Info) {
+static void DoBufRead(FILE *file, const char *filename, FileInfo *Info) {
     assert(file);
     assert(filename);
     assert(Info);
@@ -67,7 +153,7 @@ void DoBufRead(FILE *file, const char *filename, FileInfo *Info) {
     assert(Info->buf_ptr != NULL);
 }
 
-void SkipSpaces(char *buffer, size_t *pos) {
+static void SkipSpaces(char *buffer, size_t *pos) {
     assert(buffer);
     assert(pos);
 
@@ -76,7 +162,7 @@ void SkipSpaces(char *buffer, size_t *pos) {
     }
 }
 
-Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
+static Dif_t ReadTitle(FILE *logfile, char *buffer, size_t *pos) {
     assert(logfile);
     assert(buffer);
     assert(pos);
@@ -258,79 +344,4 @@ static DifErrors SyntaxErrorNode(size_t pos, char c) {
 
     fprintf(stderr, "Syntax error in %zu '%c'\n", pos, c);
     return kSyntaxError;
-}
-
-
-DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *parent, 
-    Dif_t buffer, DifNode_t **node_to_add, VariableArr *arr, int *i) {
-    assert(tree);
-    assert(file);
-    assert(logfile);
-    assert(pos);
-    assert(arr);
-    assert(i);
-
-    SkipSpaces(buffer, pos);
-    fprintf(logfile, "\n%s", buffer + *pos);
-
-    if (buffer[*pos] == '(') {
-        return ParseMainNode(tree, file, logfile, pos, parent, buffer, node_to_add, arr, i);
-    }
-
-    if (strncmp(buffer + *pos, "nil", sizeof("nil") - 1) == 0) {
-        return ParseNilNode(pos, node_to_add);
-    }
-
-    return SyntaxErrorNode(*pos, buffer[*pos]);
-}
-
-
-void ReadVariableValue(VariableArr *arr) {
-    assert(arr);
-
-    for (size_t pos = 0; pos < arr->size; pos++) {
-        printf("Введите значение переменной %s:\n", arr->var_array[pos].variable_name);
-        if (scanf("%lf", &arr->var_array[pos].variable_value) != 1) {
-            fprintf(stderr, "Ошибка ввода значения переменной %s.\n", arr->var_array[pos].variable_name);
-            arr->var_array[pos].variable_value = 0; //
-        }
-        
-    }
-}
-
-DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile) {
-    assert(root);
-    assert(dump_info);
-    assert(Variable_Array);
-    assert(filename);
-    assert(texfile);
-
-    FILE_OPEN_AND_CHECK(file, filename, "r");
-
-    FileInfo Info = {};
-    DoBufRead(file, "expression.txt", &Info);
-    printf("%s", Info.buf_ptr);
-
-    // char *string = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
-    // fscanf(file, "%s", string);
-    fclose(file);
-
-    size_t pos = 0;
-    const char *new_string = Info.buf_ptr;
-    root->root = GetGoal(root, &new_string, Variable_Array, &pos);
-    if (!root->root) {
-        return kFailure;
-    }
-    
-    dump_info->tree = root;
-    //ReadVariableValue(Variable_Array);
-    strcpy(dump_info->message, "Expression read with infix form");
-    DoTreeInGraphviz(root->root, dump_info, root->root);
-
-    fprintf(texfile, "\n\nБыло введено такое выражение: \\begin{dmath*}\n");
-    DoTexInner(root->root, texfile);
-    fprintf(texfile, "\n\\end{dmath*}");
-    DoDump(dump_info);
-
-    return kSuccess;
 }

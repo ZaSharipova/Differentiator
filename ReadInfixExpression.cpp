@@ -18,81 +18,6 @@
         return NULL;                  \
     }
 
-DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
-static OperationTypes ParseOperator(const char *string);
-DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
-
-DifNode_t *GetNumber(DifRoot *root, const char **string) {
-    assert(root);
-    assert(string);
-
-    DifNode_t *val = NULL;
-    NodeCtor(&val, 0);
-    val->type = kNumber;
-    const char *last_string = *string;
-    while ('0' <= **string && **string <= '9') {
-        val->value.number = val->value.number * 10 + (**string - '0');
-        (*string)++;
-    }
-
-    if (last_string == *string) {
-        return NULL;
-    }
-    return val;
-}
-
-DifNode_t *GetString(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
-    assert(root);
-    assert(string);
-    assert(arr);
-    assert(pos);
-
-    //static size_t pos_in_arr = 0;
-    char *buf = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
-    int position = 0;
-
-    const char *last_string = *string;
-    while ('a' <= **string && **string <= 'z') {
-        buf[position] = **string;
-        position ++;
-        (*string)++;
-    }
-
-    if (last_string == *string) {
-        return NULL;
-    }
-
-    buf[position] = '\0';
-
-    DifNode_t *var_node = NULL;
-    NodeCtor(&var_node, 0);
-
-    var_node->type = kVariable;
-    
-    bool flag_found = false;
-    Value val = {};
-
-    for (int i = 0; i < *pos; i++) {
-        if (strcmp(arr->var_array[i].variable_name, buf) == 0) {
-            val.variable = &arr->var_array[i];
-            var_node->value = val;
-            flag_found = true;
-        }
-    }
-
-    ResizeArray(arr);
-
-    if (!flag_found) {
-        arr->var_array[*pos].variable_name = buf;
-        val.variable = &arr->var_array[*pos];
-        arr->size ++;
-        var_node->value = val;
-        (*pos)++;
-    }
-
-    return var_node;
-}
-
 static OpEntry operations[] = {
     {"tg",    kOperationTg},
     {"sin",   kOperationSin},
@@ -104,43 +29,92 @@ static OpEntry operations[] = {
     {"ch",    kOperationCosh},
     {"th",    kOperationTgh},
 };
+size_t max_op_size = 5; //
 
-size_t max_op_size = 5;
+static DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
+static DifNode_t *GetTerm(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
+static DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
 
-DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *arr, size_t *position) {
+static DifNode_t *GetNumber(DifRoot *root, const char **string);
+static DifNode_t *GetString(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
+static DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *arr, size_t *position);
+static OperationTypes ParseOperator(const char *string);
+
+
+DifNode_t *GetGoal(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
     assert(root);
     assert(string);
-
-    OperationTypes type = kOperationNone;
-
-    char *buf = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
-    size_t pos = 0;
-    const char *last_position = *string;
-
-    while (isalpha(**string) && pos <= max_op_size) {
-        buf[pos] = **string;
-        pos++;
+    assert(arr);
+    assert(pos);
+    
+    CHECK_NULL_RETURN(val, GetExpression(root, string, arr, pos));
+    
+    if (**string == '$') {
         (*string)++;
-        printf("\n%s ", buf);
-
-        type = ParseOperator(buf);
-        if (type != kOperationNone) {
-            printf("URA");
-            DifNode_t *new_node = GetPrimary(root, string, arr, position);
-            free(buf);
-            return NewOperationNode(root, type, NewNumber(root, 0), new_node);
-        } else if (type != kOperationPow) {
-
-        }
+    } else {
+        fprintf(stderr, "SYNTAX_ERROR_G: expected '$', got '%c'", **string);
+        return NULL;
     }
-    *string = last_position;
-    free(buf);
-    return NULL;
+    return val;
 }
 
-DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
+static DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
     assert(root);
     assert(string);
+    assert(arr);
+    assert(pos);
+
+    CHECK_NULL_RETURN(val, GetTerm(root, string, arr, pos));
+    root->size++;
+
+    while (**string == '+' || **string == '-') {
+        int op = **string;
+        (*string)++;
+        CHECK_NULL_RETURN(val2, GetTerm(root, string, arr, pos));
+
+        if (op == '+') {
+            val = NewOperationNode(root, kOperationAdd, val, val2);
+        } else if (op == '-') {
+            val = NewOperationNode(root, kOperationSub, val, val2);
+        }
+        root->size += 1;
+    }
+
+    return val;
+}
+
+static DifNode_t *GetTerm(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
+    assert(root);
+    assert(string);
+    assert(arr);
+    assert(pos);
+
+    CHECK_NULL_RETURN(val, GetPrimary(root, string, arr, pos));
+    root->size ++;
+
+    while (**string == '*' || **string == '/' || **string == '^') {
+        int op = **string;
+        (*string)++;
+        CHECK_NULL_RETURN(val2, GetPrimary(root, string, arr, pos));
+
+        if (op == '*') {
+            val = NewOperationNode(root, kOperationMul, val, val2);
+        } else if (op == '/') {
+            val = NewOperationNode(root, kOperationDiv, val, val2);
+        } else if (op == '^') {
+            val = NewOperationNode(root, kOperationPow, val, val2);
+        }
+        root->size += 1;
+    }
+
+    return val;
+}
+
+static DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
+    assert(root);
+    assert(string);
+    assert(arr);
+    assert(pos);
 
     if (**string == '(') {
         (*string)++;
@@ -170,67 +144,122 @@ DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size
     
 }
 
-DifNode_t *GetTerm(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
+static DifNode_t *GetNumber(DifRoot *root, const char **string) {
     assert(root);
     assert(string);
 
-    CHECK_NULL_RETURN(val, GetPrimary(root, string, arr, pos));
-    root->size ++;
-
-    while (**string == '*' || **string == '/' || **string == '^') {
-        int op = **string;
-        (*string)++;
-        CHECK_NULL_RETURN(val2, GetPrimary(root, string, arr, pos));
-
-        if (op == '*') {
-            val = NewOperationNode(root, kOperationMul, val, val2);
-        } else if (op == '/') {
-            val = NewOperationNode(root, kOperationDiv, val, val2);
-        } else if (op == '^') {
-            val = NewOperationNode(root, kOperationPow, val, val2);
-        }
-        root->size += 1;
+    DifNode_t *val = NULL;
+    NodeCtor(&val, 0);
+    if (!val) {
+        return NULL;
     }
 
-    return val;
-}
-
-DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
-    assert(root);
-    assert(string);
-
-    CHECK_NULL_RETURN(val, GetTerm(root, string, arr, pos));
-    root->size++;
-
-    while (**string == '+' || **string == '-') {
-        int op = **string;
+    val->type = kNumber;
+    const char *last_string = *string;
+    while ('0' <= **string && **string <= '9') {
+        val->value.number = val->value.number * 10 + (**string - '0');
         (*string)++;
-        CHECK_NULL_RETURN(val2, GetTerm(root, string, arr, pos));
-
-        if (op == '+') {
-            val = NewOperationNode(root, kOperationAdd, val, val2);
-        } else if (op == '-') {
-            val = NewOperationNode(root, kOperationSub, val, val2);
-        }
-        root->size += 1;
     }
 
-    return val;
-}
-
-DifNode_t *GetGoal(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
-    assert(root);
-    assert(string);
-
-    CHECK_NULL_RETURN(val, GetExpression(root, string, arr, pos));
-
-    if (**string == '$') {
-        (*string)++;
-    } else {
-        fprintf(stderr, "SYNTAX_ERROR_G: expected '$', got '%c'", **string);
+    if (last_string == *string) {
         return NULL;
     }
     return val;
+}
+
+static DifNode_t *GetString(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) { //
+    assert(root);
+    assert(string);
+    assert(arr);
+    assert(pos);
+
+    char *buf = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
+    if (!buf) {
+        fprintf(stderr, "ERROR no memory.\n");
+        return NULL;
+    }
+    int position = 0;
+
+    const char *last_string = *string;
+    while ('a' <= **string && **string <= 'z') {
+        buf[position] = **string;
+        position ++;
+        (*string)++;
+    }
+
+    if (last_string == *string) {
+        return NULL;
+    }
+
+    buf[position] = '\0';
+
+    DifNode_t *var_node = NULL;
+    NodeCtor(&var_node, 0);
+    if (!var_node) {
+        return NULL;
+    }
+
+    var_node->type = kVariable;
+    
+    bool flag_found = false;
+    Value val = {};
+
+    for (size_t i = 0; i < *pos; i++) {
+        if (strcmp(arr->var_array[i].variable_name, buf) == 0) {
+            val.variable = &arr->var_array[i];
+            var_node->value = val;
+            flag_found = true;
+        }
+    }
+
+    ResizeArray(arr);
+
+    if (!flag_found) {
+        arr->var_array[*pos].variable_name = buf;
+        val.variable = &arr->var_array[*pos];
+        arr->size ++;
+        var_node->value = val;
+        (*pos)++;
+    }
+
+    return var_node;
+}
+
+static DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *arr, size_t *position) {
+    assert(root);
+    assert(string);
+    assert(arr);
+    assert(position);
+
+    OperationTypes type = kOperationNone;
+
+    char *buf = (char *) calloc (MAX_TEXT_SIZE, sizeof(char));
+    if (!buf) {
+        fprintf(stderr, "ERROR no memory.\n");
+        return NULL;
+    }
+
+    size_t pos = 0;
+    const char *last_position = *string;
+
+    while (isalpha(**string) && pos <= max_op_size) {
+        buf[pos] = **string;
+        pos++;
+        (*string)++;
+
+        type = ParseOperator(buf);
+        if (type != kOperationNone) {
+            DifNode_t *new_node = GetPrimary(root, string, arr, position);
+            free(buf);
+            return NewOperationNode(root, type, NewNumber(root, 0), new_node);
+        } else if (type != kOperationPow) {
+
+        }
+    }
+    *string = last_position;
+
+    free(buf);
+    return NULL;
 }
 
 static OperationTypes ParseOperator(const char *string) {

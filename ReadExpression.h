@@ -17,7 +17,13 @@
         return kErrorOpening;                     \
     }
 
-void DoBufRead(FILE *file, const char *filename, FileInfo *Info);
+#define INIT_DUMP_INFO(name)                                       \
+    DumpInfo name = {};                                            \
+    dump_info.filename_to_write_dump = "alldump.html";             \
+    dump_info.file = fopen(dump_info.filename_to_write_dump, "w"); \
+    dump_info.filename_to_write_graphviz = "output.txt";           \
+    strcpy(dump_info.message, "Expression tree");
+
 DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *node, Dif_t buffer, DifNode_t **node_to_add, VariableArr *arr, int *i);
 void ReadVariableValue(VariableArr *arr);
 DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile);

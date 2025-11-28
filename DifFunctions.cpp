@@ -57,12 +57,10 @@ DifErrors DeleteNode(DifNode_t *node) {
 
     if (node->left) {
         DeleteNode(node->left);
-        //node->left = NULL;
     }
 
     if (node->right) {
         DeleteNode(node->right);
-        //node->right = NULL;
     }
 
     node->parent = NULL;
@@ -146,20 +144,20 @@ DifErrors ForestCtor(Forest *forest, size_t size) {
     return kSuccess;
 }
 
-// DifErrors ResizeArray(Forest *forest)  {
-//     assert(forest);
+DifErrors ResizeForest(Forest *forest, size_t new_size)  {
+    assert(forest);
 
-//     if (forest->size + 2 > forest->capacity) {
-//         Forest *ptr = (Forest *) calloc (forest->capacity += 2, sizeof(Forest));
-//         if (!ptr) {
-//             fprintf(stderr, "Memory error.\n");
-//             return kNoMemory;
-//         }
-//         arr->var_array = ptr;
-//     }
+    if (forest->size + 2 > new_size) {
+        Forest *ptr = (Forest *) calloc (forest->size += 2, sizeof(Forest));
+        if (!ptr) {
+            fprintf(stderr, "Memory error.\n");
+            return kNoMemory;
+        }
+        forest = ptr;
+    }
 
-//     return kSuccess;
-// }
+    return kSuccess;
+}
 
 void ForestDtor(Forest *forest) {
     assert(forest);
@@ -209,6 +207,5 @@ DifErrors VerifyTree(DifRoot *root) {
         return error;
     }
 
-    
     return kSuccess;
 }

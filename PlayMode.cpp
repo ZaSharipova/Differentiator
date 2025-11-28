@@ -32,18 +32,17 @@ static FILE *SelectInputFile(void);
 static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var);
 static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var);
 static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array);
-DifErrors CountInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array);
 
 static void DoSystemForGnuplot(const char *main_var);
 
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
-                                      FILE *out, DumpInfo *DumpInfo, DiffModes ans);
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans);
 static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *out);
 static void ReadDerivativeParameters(char *var, size_t *amount_of_dif);
 
-static void PrintMenu(void);
+static DiffModes PrintMenuAndAskMode(void);
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
-                                  FILE *out, DumpInfo *DumpInfo, bool *flag_end);
+    FILE *out, DumpInfo *DumpInfo, bool *flag_end);
 
 static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
     FILE *out, DumpInfo *DumpInfo, DiffModes ans);
@@ -61,9 +60,7 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
 
     bool flag_end = false;
     while (!flag_end) {
-        PrintMenu();
-        DiffModes ans = kDerivative;
-        scanf("%d", &ans);
+        DiffModes ans = PrintMenuAndAskMode();
 
         err = DivideChoice(ans, root, Variable_Array, out, Dump_Info, &flag_end);
         if (err != kSuccess) return err;
@@ -71,19 +68,23 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
     return kSuccess;
 }
 
-static void PrintMenu(void) {
+static DiffModes PrintMenuAndAskMode(void) {
     printf(CYAN "Введите, что вы хотите сделать с введенным выражением:\n"
-            YELLOW "1." RESET "Посчитать все, \n"
-            YELLOW "2." RESET " Посчитать (н-ную) производную,\n"
-            YELLOW "3." RESET " Посчитать значение (н-ной) производной в точке,\n" 
-            YELLOW "4." RESET " Посчитать значение выражения,\n"
-            YELLOW "5." RESET " Разложить по формуле Тейлора,\n"
-            YELLOW "6." RESET " Построить график,\n"
-            YELLOW "7." RESET " Выйти:\n");
+        YELLOW "1." RESET " Посчитать все, \n"
+        YELLOW "2." RESET " Посчитать (н-ную) производную,\n"
+        YELLOW "3." RESET " Посчитать значение (н-ной) производной в точке,\n" 
+        YELLOW "4." RESET " Посчитать значение выражения,\n"
+        YELLOW "5." RESET " Разложить по формуле Тейлора,\n"
+        YELLOW "6." RESET " Построить график,\n"
+        YELLOW "7." RESET " Выйти:\n");
+
+    DiffModes ans = kDerivative;
+    scanf("%d", &ans);
+    return ans;
 }
 
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
-                                  FILE *out, DumpInfo *DumpInfo, bool *flag_end) {
+    FILE *out, DumpInfo *DumpInfo, bool *flag_end) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
@@ -115,13 +116,13 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
             return kSuccess;
             
         default:
-            printf("Неизвестная команда.\n");
-            return kSuccess;
+            fprintf(stderr, "Неизвестная команда.\n");
+            return kFailure;
     }
 }
 
 static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
-    FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
+        FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
@@ -136,7 +137,7 @@ static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array,
 
 }
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
-                                      FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
+        FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
@@ -152,7 +153,7 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
     
     DifRoot root2 = {};
     DifRootCtor(&root2);
-    //NodeCtor(&root2.root, 0);
+
     DifErrors err = DoNDif(&forest, root, &root2, amount_of_dif, out, DumpInfo, var);
     if (err != kSuccess) {
         ForestDtor(&forest);
@@ -160,7 +161,6 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
     }
 
     if (ans == kDerivativeInPos) {
-        //printf()
         DoDerivativeInPos(&root2, Variable_Array, DumpInfo, out, amount_of_dif, var);
     }
 
@@ -177,36 +177,6 @@ static void ReadDerivativeParameters(char *main_var, size_t *amount_of_dif) {
     scanf("%s", main_var);
     printf(MAGENTA "Введите, какую производную вы хотите посчитать:\n" RESET);
     scanf("%zu", amount_of_dif);
-}
-
-static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *out) {
-    assert(root);
-    assert(Variable_Array);
-    assert(out);
-
-    double res = SolveEquation(root);
-    printf("Результат вычисления выражения: %lf\n", res);
-    PrintSolution(root->root, res, out, Variable_Array);
-    return kSuccess;
-}
-
-void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var) {
-    assert(out);
-    assert(root);
-    assert(main_var);
-
-    DifNode_t *node = root->root;
-
-    DifNode_t *node_var = NULL;
-    FindMainVar(node, main_var, &node_var);
-    double copied_value = node_var->value.variable->variable_value;
-
-    for (double i = -50.0; i < 50.0; i += 0.5) {
-        node_var->value.variable->variable_value = i;
-        fprintf(out, "%f ", i);
-        fprintf(out, "%f\n", SolveEquation(root));
-    }
-    node_var->value.variable->variable_value = copied_value;
 }
 
 static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var) {
@@ -282,6 +252,36 @@ static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array) {
     printf("Отлично, смотрите график функции в файле %s.\n", "my_points_plot.png");
 
     return kSuccess;
+}
+
+static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *out) {
+    assert(root);
+    assert(Variable_Array);
+    assert(out);
+
+    double res = SolveEquation(root);
+    printf("Результат вычисления выражения: %lf\n", res);
+    PrintSolution(root->root, res, out, Variable_Array);
+    return kSuccess;
+}
+
+void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var) {
+    assert(out);
+    assert(root);
+    assert(main_var);
+
+    DifNode_t *node = root->root;
+
+    DifNode_t *node_var = NULL;
+    FindMainVar(node, main_var, &node_var);
+    double copied_value = node_var->value.variable->variable_value;
+
+    for (double i = -50.0; i < 50.0; i += 0.5) {
+        node_var->value.variable->variable_value = i;
+        fprintf(out, "%f ", i);
+        fprintf(out, "%f\n", SolveEquation(root));
+    }
+    node_var->value.variable->variable_value = copied_value;
 }
 
 static void DoSystemForGnuplot(const char *main_var) {

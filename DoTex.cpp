@@ -24,6 +24,68 @@ static const int TEX_PHRASES_COUNT = (sizeof(TexPhrasesArray) / sizeof(char*));
 size_t pos_in_array = TEX_PHRASES_COUNT;
 
 
+
+void BeginTex(FILE *out) {
+    assert(out);
+    
+    fprintf(out, "\\documentclass{article}\n");
+    fprintf(out, "\\usepackage{amsmath}\n");
+    fprintf(out, "\n\\usepackage[utf8]{inputenc}\n");
+    fprintf(out, "\\usepackage[english,russian]{babel}");
+    fprintf(out, "\\usepackage{xcolor}\n");
+    fprintf(out, "\n\\usepackage{breqn}\n");
+    fprintf(out, "\\usepackage[left=2cm, top=2cm, right=2cm, bottom=2cm]{geometry}\n\n");
+    fprintf(out, "\\begin{document}\n\\fontsize{7}{9}\\selectfont\n");
+    
+    fprintf(out, "Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным. \n\n\\vspace{1em}");
+}
+
+void EndTex(FILE *out) {
+    fprintf(out, "\n\nТеперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно.\n\n Смелее закрывайте этот ТЕХ, и будет вам счастье!!\n");
+    fprintf(out, "\n\\end{document}\n");
+}
+
+void DoTex(DifNode_t *node, const char *value, FILE *out) {
+    assert(node);
+    assert(value);
+    assert(out);
+    
+    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
+    
+    fprintf(out, "\\begin{dmath*} \\frac{df}{d%s} = ", value);
+    DoTexInner(node, out);
+    fprintf(out, "\\end{dmath*}\n");
+}
+
+void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out) {
+    assert(node);
+    assert(result);
+    assert(out);
+    
+    fprintf(out, "\n\\begin{dmath*}(");
+    DoTexInner(node, out);
+    fprintf(out, ")' = ");
+    DoTexInner(result, out);
+    fprintf(out, "\\end{dmath*}");
+} 
+
+void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr) {
+    assert(node);
+    assert(out);
+    assert(VariableArr);
+    
+    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
+    if (VariableArr->size > 0) fprintf(out, "при %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
+    
+    for (size_t i = 1; i < VariableArr->size; i++) {
+        fprintf(out, ", %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
+    }
+    
+    fprintf(out, "\n\n\\begin{dmath*}\n");
+    DoTexInner(node, out);
+    fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
+}
+
 void DoTexInner(DifNode_t *node, FILE *out) {
     assert(node);
     assert(out);
@@ -141,65 +203,6 @@ void DoTexInner(DifNode_t *node, FILE *out) {
     }
 }
 
-void BeginTex(FILE *out) {
-    assert(out);
-
-    fprintf(out, "\\documentclass{article}\n");
-    fprintf(out, "\\usepackage{amsmath}\n");
-    fprintf(out, "\n\\usepackage[utf8]{inputenc}\n");
-    fprintf(out, "\\usepackage[english,russian]{babel}");
-    fprintf(out, "\\usepackage{xcolor}\n");
-    fprintf(out, "\n\\usepackage{breqn}\n");
-    fprintf(out, "\\usepackage[left=2cm, top=2cm, right=2cm, bottom=2cm]{geometry}\n\n");
-    fprintf(out, "\\begin{document}\n\\fontsize{7}{9}\\selectfont\n");
-
-    fprintf(out, "Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным. \n\n\\vspace{1em}");
-}
-
-void EndTex(FILE *out) {
-    fprintf(out, "\n\nТеперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно.\n\n Смелее закрывайте этот ТЕХ, и будет вам счастье!!\n");
-    fprintf(out, "\n\\end{document}\n");
-}
-
-void DoTex(DifNode_t *node, const char *value, FILE *out) {
-    assert(node);
-    assert(value);
-    assert(out);
-
-    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
-    //fprintf(out, "\n\\[\n");
-    fprintf(out, "\\begin{dmath*} \\frac{df}{d%s} = ", value);
-    DoTexInner(node, out);
-    fprintf(out, "\\end{dmath*}\n");
-    //if (!is_last) fprintf(out, " \\\\ \n");
-}
-
-void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr) {
-    assert(node);
-    assert(out);
-    assert(VariableArr);
-
-    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
-    if (VariableArr->size > 0) fprintf(out, "при %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
-
-    for (size_t i = 1; i < VariableArr->size; i++) {
-        fprintf(out, ", %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
-    }
-
-    fprintf(out, "\n\n\\begin{dmath*}\n");
-    DoTexInner(node, out);
-    fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
-}
-
 static bool IsNegativeNumber(DifNode_t *node) {
     return (node->type == kNumber && node->value.number < 0);
 }
-
-void PrintShrich(DifNode_t *node, FILE *out) {
-    assert(node);
-    assert(out);
-
-    fprintf(out, "\n\n\\begin{dmath*}(");
-    DoTexInner(node, out);
-    fprintf(out, ")'");
-} 

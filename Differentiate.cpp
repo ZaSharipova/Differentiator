@@ -105,16 +105,13 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
     assert(node);
     assert(main_var);
     assert(texfile);
-
-    // Вывод ДО дифференцирования текущего узла
-    //DoTexStep(root, node, main_var, texfile);
     
     if (node->type == kNumber) {
         return NEWN(0);
     } 
     
     if (node->type == kVariable) {
-        if (strcmp(node->value.variable->variable_name, main_var) == 0) {
+        if (strncmp(node->value.variable->variable_name, main_var, strlen(main_var)) == 0) {
             return NEWN(1);
         } else {
             return NEWN(0);
@@ -168,16 +165,8 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
             fprintf(stderr, "No such operation.\n");
             return NULL;
     }
-    PrintShrich(node, texfile);
-    fprintf(texfile, " = ");
-    DoTexInner(result, texfile);
-    fprintf(texfile, "\\end{dmath*}\n\n");
-    
-    // Вывод ПОСЛЕ дифференцирования текущего узла
-    // if (result) {
-    //     printf("asdfgh\n");
-    //     DoTexStep(result, result, main_var, texfile);
-    // }
+
+    PrintShrich(node, result, texfile);
     
     return result;
 }
@@ -190,7 +179,7 @@ DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_wi
     assert(node_with_main_var);
 
     if (!(*node_with_main_var)) {
-        if (node->type == kVariable && strcmp(node->value.variable->variable_name, main_var) == 0) {
+        if (node->type == kVariable && strncmp(node->value.variable->variable_name, main_var, strlen(main_var)) == 0) {
             *node_with_main_var = node;
             return kSuccess;
         } else {

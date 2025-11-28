@@ -2,6 +2,7 @@
 #define ENUMS_H_
 
 #define MAX_VARIABLES 26
+#define eps 1e-12 //
 
 enum DifErrors {
     kSuccess,
