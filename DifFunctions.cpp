@@ -108,7 +108,7 @@ DifErrors ResizeArray(VariableArr *arr)  {
     assert(arr);
 
     if (arr->size + 2 > arr->capacity) {
-        VariableInfo *ptr = (VariableInfo *) calloc (arr->capacity += 2, sizeof(VariableInfo));
+        VariableInfo *ptr = (VariableInfo *) realloc (arr, (arr->capacity += 2) * sizeof(VariableInfo));
         if (!ptr) {
             fprintf(stderr, "Memory error.\n");
             return kNoMemory;
@@ -147,13 +147,14 @@ DifErrors ForestCtor(Forest *forest, size_t size) {
 DifErrors ResizeForest(Forest *forest, size_t new_size)  {
     assert(forest);
 
-    if (forest->size + 2 > new_size) {
-        Forest *ptr = (Forest *) calloc (forest->size += 2, sizeof(Forest));
+    if (forest->size < new_size) {
+        DifRoot *ptr = (DifRoot *) realloc (forest->trees, new_size * sizeof(DifRoot));
         if (!ptr) {
             fprintf(stderr, "Memory error.\n");
             return kNoMemory;
         }
-        forest = ptr;
+        forest->trees = ptr;
+        forest->size = new_size;
     }
 
     return kSuccess;

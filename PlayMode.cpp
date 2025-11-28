@@ -30,22 +30,22 @@
 static FILE *SelectInputFile(void);
 
 static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var);
-static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var);
-static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array);
+static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var, Forest *forest);
+static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array, Forest *forest);
 
 static void DoSystemForGnuplot(const char *main_var);
 
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
-    FILE *out, DumpInfo *DumpInfo, DiffModes ans);
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest);
 static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *out);
 static void ReadDerivativeParameters(char *var, size_t *amount_of_dif);
 
 static DiffModes PrintMenuAndAskMode(void);
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
-    FILE *out, DumpInfo *DumpInfo, bool *flag_end);
+    FILE *out, DumpInfo *DumpInfo, bool *flag_end, Forest *forest);
 
 static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
-    FILE *out, DumpInfo *DumpInfo, DiffModes ans);
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest);
 
 static const char *AskFilename(void);
 
@@ -58,13 +58,19 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
     DifErrors err = kSuccess;
     // CHECK_ERROR_RETURN(VerifyTree(root));
 
+    Forest forest = {};
+    ForestCtor(&forest, 2);
+    forest.trees[0] = *root;
+
     bool flag_end = false;
     while (!flag_end) {
         DiffModes ans = PrintMenuAndAskMode();
 
-        err = DivideChoice(ans, root, Variable_Array, out, Dump_Info, &flag_end);
+        err = DivideChoice(ans, root, Variable_Array, out, Dump_Info, &flag_end, &forest);
         if (err != kSuccess) return err;
     }
+
+    ForestDtor(&forest);
     return kSuccess;
 }
 
@@ -84,7 +90,7 @@ static DiffModes PrintMenuAndAskMode(void) {
 }
 
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
-    FILE *out, DumpInfo *DumpInfo, bool *flag_end) {
+    FILE *out, DumpInfo *DumpInfo, bool *flag_end, Forest *forest) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
@@ -94,17 +100,17 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
 
     switch (ans) {
         case kAll:
-            return DoAllOptions(root, Variable_Array, out, DumpInfo, ans);
+            return DoAllOptions(root, Variable_Array, out, DumpInfo, ans, forest);
 
         case kDerivativeInPos:
         case kDerivative:
-            return DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans);
+            return DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest);
             
         case kCount:
             return DoCountCase(root, Variable_Array, out);
             
         case kGraph:
-            return DoGnuplot(root, Variable_Array);
+            return DoGnuplot(root, Variable_Array, forest);
             
         case kExit:
             *flag_end = true;
@@ -122,22 +128,22 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
 }
 
 static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
-        FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
+        FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
     assert(out);
     assert(DumpInfo);
 
-    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans);
+    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest);
     DoCountCase(root, Variable_Array, out);
-    DoGnuplot(root, Variable_Array);
+    DoGnuplot(root, Variable_Array, forest);
 
     return kSuccess;
 
 }
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
-        FILE *out, DumpInfo *DumpInfo, DiffModes ans) {
+        FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
@@ -148,24 +154,25 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
     size_t amount_of_dif = 0;
     ReadDerivativeParameters(var, &amount_of_dif);
 
-    Forest forest = {};
-    ForestCtor(&forest, amount_of_dif);
+    // Forest forest = {};
+    fprintf(stderr, "%zu", forest->size);
+    ResizeForest(forest, amount_of_dif + 1);
+    fprintf(stderr, "%zu", forest->size);
     
-    DifRoot root2 = {};
-    DifRootCtor(&root2);
+    DifRoot root_last = {};
+    DifRootCtor(&root_last);
 
-    DifErrors err = DoNDif(&forest, root, &root2, amount_of_dif, out, DumpInfo, var);
+    DifErrors err = DoNDif(forest, root, &root_last, amount_of_dif, out, DumpInfo, var);
     if (err != kSuccess) {
-        ForestDtor(&forest);
+        ForestDtor(forest); //
         return err;
     }
 
     if (ans == kDerivativeInPos) {
-        DoDerivativeInPos(&root2, Variable_Array, DumpInfo, out, amount_of_dif, var);
+        DoDerivativeInPos(&root_last, Variable_Array, DumpInfo, out, amount_of_dif, var, forest);
     }
 
     printf("Скорее смотрите ДАМП и ТЕХ!!!\n");
-    ForestDtor(&forest);
     return kSuccess;
 }
 
@@ -179,45 +186,44 @@ static void ReadDerivativeParameters(char *main_var, size_t *amount_of_dif) {
     scanf("%zu", amount_of_dif);
 }
 
-static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var) {
+static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var) {
     assert(forest);
     assert(root);
     assert(out);
     assert(DumpInfo);
     assert(main_var);
 
-    DifRoot *node_to_dif = root;
+    //DifRoot *node_to_dif = root;
 
     for (size_t i = 1; i <= ans; i++) {
         fprintf(out, "\n\n\\textbf{Посчитаем %zu производную:}\n\n", i);
-        DifNode_t *new_tree = Dif(&forest->trees[i - 1], node_to_dif->root, main_var, out);
+        DifNode_t *new_tree = Dif(&forest->trees[i], forest->trees[i-1].root, main_var, out);
         if (!new_tree) {
             fprintf(stderr, "Dif failed on derivative %zu\n", i);
             ForestDtor(forest);
             return kFailure;
         }
-        forest->trees[i - 1].root = new_tree;
-        root2->root = forest->trees[i - 1].root;
+        forest->trees[i].root = new_tree;
+        //root_last->root = forest->trees[i].root;
 
-        DumpInfo->tree = &forest->trees[i - 1];
+        DumpInfo->tree = &forest->trees[i];
         snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
-        DoTreeInGraphviz(root2->root, DumpInfo, root2->root);
+        DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
         DoDump(DumpInfo);
-        DoTex(forest->trees[i - 1].root, main_var, out);
+        DoTex(forest->trees[i].root, main_var, out);
 
-        forest->trees[i - 1].root = OptimiseTree(&forest->trees[i - 1], forest->trees[i - 1].root, out, main_var);
-        DoTreeInGraphviz(forest->trees[i - 1].root, DumpInfo, forest->trees[i - 1].root);
+        forest->trees[i].root = OptimiseTree(&forest->trees[i], forest->trees[i].root, out, main_var);
+        DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
         snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Optimised tree after counting (%zu) derivative", i);
         DoDump(DumpInfo);
 
-        root2->root = forest->trees[ans-1].root;
-        node_to_dif = &forest->trees[i - 1];
     }
+    root_last->root = forest->trees[ans].root;
 
     return kSuccess;
 }
 
-static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var) {
+static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var, Forest *forest) {
     assert(root2);
     assert(Variable_Array);
     assert(DumpInfo);
@@ -234,7 +240,7 @@ static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpI
     DoDump(DumpInfo);
 }
 
-static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array) {
+static DifErrors DoGnuplot(DifRoot *root, VariableArr *Variable_Array, Forest *forest) {
     assert(root);
     assert(Variable_Array);
 

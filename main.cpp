@@ -35,5 +35,5 @@ int main(void) {
     fclose(file);
 
     DtorVariableArray(&Variable_Array);
-    TreeDtor(&root);
+    //TreeDtor(&root);
 }
