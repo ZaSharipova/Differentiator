@@ -153,9 +153,15 @@ DifErrors ResizeForest(Forest *forest, size_t new_size)  {
             fprintf(stderr, "Memory error.\n");
             return kNoMemory;
         }
+
+        for (size_t i = forest->size; i < new_size; i++) {
+            ptr[i].root = NULL;
+        }
+
         forest->trees = ptr;
         forest->size = new_size;
     }
+
 
     return kSuccess;
 }

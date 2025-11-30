@@ -249,8 +249,8 @@ static DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *
 
         type = ParseOperator(buf);
         if (type != kOperationNone) {
-            DifNode_t *new_node = GetPrimary(root, string, arr, position);
             free(buf);
+            DifNode_t *new_node = GetPrimary(root, string, arr, position); //
             return NewOperationNode(root, type, NewNumber(root, 0), new_node);
         } else if (type != kOperationPow) {
 

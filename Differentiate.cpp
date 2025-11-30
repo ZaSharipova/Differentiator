@@ -45,6 +45,22 @@ DifNode_t *NewNumber(DifRoot *root, double value) {
     return new_node;
 }
 
+DifNode_t *NewVariable(DifRoot *root, const char *variable) {
+    assert(root);
+    assert(variable);
+
+    DifNode_t *new_node = NULL;
+    NodeCtor(&new_node, NULL);
+
+    root->size ++;
+    new_node->type = kVariable;
+
+    new_node->value.variable = (VariableInfo*) calloc(1, sizeof(VariableInfo));
+    new_node->value.variable->variable_name = variable;
+
+    return new_node;
+}
+
 DifNode_t *NewOperationNode(DifRoot *root, OperationTypes op_type, DifNode_t *left, DifNode_t *right) {
     assert(root);
     assert(right);
