@@ -10,6 +10,6 @@ DifNode_t *NewNumber(DifRoot *root, double value);
 DifNode_t *CopyNode(DifRoot *root, DifNode_t *node);
 DifNode_t *NewOperationNode(DifRoot *root, OperationTypes op_type, DifNode_t *left, DifNode_t *right);
 DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var);
-DifNode_t *NewVariable(DifRoot *root, const char *variable);
+DifNode_t *NewVariable(DifRoot *root, const char *variable, VariableArr *VariableArr);
 
 #endif //DO_SOLVE_H_

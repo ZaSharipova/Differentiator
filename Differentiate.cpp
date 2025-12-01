@@ -45,7 +45,7 @@ DifNode_t *NewNumber(DifRoot *root, double value) {
     return new_node;
 }
 
-DifNode_t *NewVariable(DifRoot *root, const char *variable) {
+DifNode_t *NewVariable(DifRoot *root, const char *variable, VariableArr *VariableArr) {
     assert(root);
     assert(variable);
 
@@ -54,9 +54,17 @@ DifNode_t *NewVariable(DifRoot *root, const char *variable) {
 
     root->size ++;
     new_node->type = kVariable;
+    VariableInfo *addr = NULL;
 
-    new_node->value.variable = (VariableInfo*) calloc(1, sizeof(VariableInfo));
-    new_node->value.variable->variable_name = variable;
+    for (size_t i = 0; i < VariableArr->size; i++) {
+        if (strcmp(variable, VariableArr[i].var_array->variable_name) == 0) {
+           addr = VariableArr[i].var_array;
+        }
+    }
+
+    new_node->value.variable = (VariableInfo *) calloc (1, sizeof(VariableInfo));
+        
+    new_node->value.variable = addr;
 
     return new_node;
 }

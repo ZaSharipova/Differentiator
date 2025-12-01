@@ -19,7 +19,27 @@ const char *TexPhrasesArray[] = {
     "Интуитивно понятно, что",
     "Опуская промежуточные преобразования, приходим к",
     "Пристально вглядевшись, можно увидеть, что",
+    
+    "Следовательно",
+    "Отсюда непосредственно",
+    "Продолжая упрощения",
+    "Упрощая выражение",
+    "Без особого труда видим",
+    "Легко проверить, что",
+    "По очевидным причинам",
+    "Естественно следует",
+    "Приведём к виду",
+    "Проще всего записать",
+    "В частности",
+    "Из проведённых выкладок",
+    "Подставляя значения",
+    "С учётом этого",
+    "Далее очевидно",
+    "Вычислим по частям",
+    "Сокращая общие множители",
+    "Упростив левую часть"
 };
+
 static const int TEX_PHRASES_COUNT = (sizeof(TexPhrasesArray) / sizeof(char*));
 size_t pos_in_array = TEX_PHRASES_COUNT;
 
@@ -28,20 +48,28 @@ size_t pos_in_array = TEX_PHRASES_COUNT;
 void BeginTex(FILE *out) {
     assert(out);
     
-    fprintf(out, "\\documentclass{article}\n");
+    fprintf(out, "\\documentclass[12pt]{article}\n");
     fprintf(out, "\\usepackage{amsmath}\n");
+    fprintf(out, "\\usepackage{graphicx}\n");
     fprintf(out, "\n\\usepackage[utf8]{inputenc}\n");
     fprintf(out, "\\usepackage[english,russian]{babel}");
     fprintf(out, "\\usepackage{xcolor}\n");
     fprintf(out, "\n\\usepackage{breqn}\n");
     fprintf(out, "\\usepackage[left=2cm, top=2cm, right=2cm, bottom=2cm]{geometry}\n\n");
-    fprintf(out, "\\begin{document}\n\\fontsize{7}{9}\\selectfont\n");
-    
-    fprintf(out, "Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным. \n\n\\vspace{1em}");
+    fprintf(out, "\\title{<<Дифференцирование головного мозга и матана>>}\n");
+    fprintf(out, "\\author{Зарина Шарипова Б05-531}\n\n");
+
+    fprintf(out, "\\begin{document}\n");
+
+    fprintf(out, "\\maketitle\n");
+    fprintf(out, "\\includegraphics[width=0.8\\textwidth]{bibki.jpg}\n\\clearpage");
+    fprintf(out, "\n\n\\tableofcontents\n\\clearpage\n");
+    fprintf(out, "\\textbf{Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным.}\n\n\\vspace{1em}");
 }
 
 void EndTex(FILE *out) {
-    fprintf(out, "\n\nТеперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно.\n\n Смелее закрывайте этот ТЕХ, и будет вам счастье!!\n");
+    fprintf(out, "\\clearpage\n");
+    fprintf(out, "\n\n\\textbf{Теперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно}.\n\n \\textbf{Смелее закрывайте этот ТЕХ, и будет вам счастье!!}\n");
     fprintf(out, "\n\\end{document}\n");
 }
 
@@ -62,6 +90,7 @@ void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out) {
     assert(result);
     assert(out);
     
+    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
     fprintf(out, "\n\\begin{dmath*}(");
     DoTexInner(node, out);
     fprintf(out, ")' = ");
@@ -69,11 +98,19 @@ void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out) {
     fprintf(out, "\\end{dmath*}");
 } 
 
+void UploadGraph(FILE *out) {
+    assert(out);
+
+    fprintf(out, "\n\\clearpage\\section{Чудесные графики чудесных функций!}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{my_points_plot.png}\n");
+}
+
 void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr) {
     assert(node);
     assert(out);
     assert(VariableArr);
     
+    fprintf(out, "\n\\section{Значение выражения в точке}\n\n");
     fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
     if (VariableArr->size > 0) fprintf(out, "при %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
     

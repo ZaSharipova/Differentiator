@@ -11,5 +11,6 @@ void DoTexInner(DifNode_t *node, FILE *out);
 void DoTex(DifNode_t *node, const char *value, FILE *out);
 void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr);
 void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out);
+void UploadGraph(FILE *out);
 
 #endif //DO_TEX_H_
