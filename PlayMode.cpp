@@ -272,7 +272,7 @@ static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, 
     DoSystemForGnuplot(main_var);
     
     UploadGraph(out);
-    fprintf(out, "\n\\textcolor{violet}{Фиолетовый:} \n\\begin{dmath*}");
+    fprintf(out, "\n\\textcolor{red}{Красный:} \n\\begin{dmath*}");
     DoTexInner(root_written->root, out);
     fprintf(out, "\\end{dmath*}\n\n");
     fprintf(out, "\\textcolor{green}{Зеленый:} \n\\begin{dmath*}");
@@ -324,7 +324,7 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     }
     double copied_value = node_var->value.variable->variable_value;
 
-    for (double i = -50.0; i < 50.0; i += 0.5) {
+    for (double i = -10.0; i < 10.0; i += 0.1) {
         node_var->value.variable->variable_value = i;
         fprintf(out, "%f ", i);
         fprintf(out, "%f\n", SolveEquation(root));
@@ -423,30 +423,66 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
 static void DoSystemForGnuplot(const char *main_var) {
     assert(main_var);
 
-    char command[10000] = {};
-
-    snprintf(command, sizeof(command),
+    char command1[10000] = {};
+    snprintf(command1, sizeof(command1),
         "gnuplot -e \""
         "set terminal pngcairo size 1200,600;"
-        "set output 'my_points_plot.png';"
+        "set output 'plot1.png';"
         "set grid;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
+        "set title 'Function';"
         "plot "
-        "'gnuplot1.txt' using 1:2 with linespoints, "
-        "'gnuplot2.txt' using 1:2 with linespoints, "
-        "'gnuplot3.txt' using 1:2 with linespoints;"
+        "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'Function'; "
         "\"",
         main_var
     );
 
-    // printf("Gnuplot command:\n%s\n", command);
+    char command2[10000] = {};
+    snprintf(command2, sizeof(command2),
+        "gnuplot -e \""
+        "set terminal pngcairo size 1200,600;"
+        "set output 'plot2.png';"
+        "set grid;"
+        "set xlabel '%s';"
+        "set ylabel 'Y';"
+        "set title 'First Derivative';"
+        "plot "
+        "'gnuplot2.txt' using 1:2 with linespoints lc rgb 'green' lw 2 pt 9 ps 0.5 title '';"
+        "\"",
+        main_var
+    );
 
-    if (system(command) != 0) {
-        fprintf(stderr, "Failed to run gnuplot command %s.\n", command);
+    char command3[10000] = {};
+    snprintf(command3, sizeof(command3),
+        "gnuplot -e \""
+        "set terminal pngcairo size 1200,600;"
+        "set output 'plot_taylor.png';"
+        "set grid;"
+        "set xlabel '%s';"
+        "set ylabel 'Y';"
+        "set title 'Taylor comparison';"
+        "plot "
+        "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'function', "
+        "'gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial';"
+        "\"",
+        main_var
+    );
+
+    int result1 = system(command1);
+    int result2 = system(command2);
+    int result3 = system(command3);
+
+    if (result1 != 0) {
+        fprintf(stderr, "Failed to run gnuplot command 1.\n");
+    }
+    if (result2 != 0) {
+        fprintf(stderr, "Failed to run gnuplot command 2.\n");
+    }
+    if (result3 != 0) {
+        fprintf(stderr, "Failed to run gnuplot command 3.\n");
     }
 }
-
 
 static FILE *SelectInputFile(void) {
     printf(MAGENTA "Вы хотите ввести выражение из консоли или из файла?\n"

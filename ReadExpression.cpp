@@ -76,7 +76,7 @@ DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Ar
     FILE_OPEN_AND_CHECK(file, filename, "r");
 
     FileInfo Info = {};
-    DoBufRead(file, "expression.txt", &Info);
+    DoBufRead(file, filename, &Info);
     printf("%s", Info.buf_ptr);
 
     fclose(file);

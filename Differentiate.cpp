@@ -52,8 +52,7 @@ DifNode_t *NewNode(DifRoot *root, DifTypes type, Value value, DifNode_t *left, D
         VariableInfo *addr = NULL;
         for (size_t i = 0; i < Variable_Array->size; i++) {
             if (strcmp(value.variable->variable_name,
-                       Variable_Array[i].var_array->variable_name) == 0)
-            {
+                       Variable_Array[i].var_array->variable_name) == 0) {
                 addr = Variable_Array[i].var_array;
                 break;
             }
@@ -76,7 +75,6 @@ DifNode_t *NewNode(DifRoot *root, DifTypes type, Value value, DifNode_t *left, D
 
         if (left)  left->parent  = new_node;
         if (right) right->parent = new_node;
-
         break;
     }
 

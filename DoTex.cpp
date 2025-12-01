@@ -62,7 +62,7 @@ void BeginTex(FILE *out) {
     fprintf(out, "\\begin{document}\n");
 
     fprintf(out, "\\maketitle\n");
-    fprintf(out, "\\includegraphics[width=0.8\\textwidth]{bibki.jpg}\n\\clearpage");
+    fprintf(out, "\\centering\\includegraphics[width=0.8\\textwidth]{bibki.jpg}\n\\clearpage");
     fprintf(out, "\n\n\\tableofcontents\n\\clearpage\n");
     fprintf(out, "\\textbf{Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным.}\n\n\\vspace{1em}");
 }
@@ -70,7 +70,9 @@ void BeginTex(FILE *out) {
 void EndTex(FILE *out) {
     fprintf(out, "\\clearpage\n");
     fprintf(out, "\n\n\\textbf{Теперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно}.\n\n \\textbf{Смелее закрывайте этот ТЕХ, и будет вам счастье!!}\n");
+    fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{help.jpg}\n");
     fprintf(out, "\n\\end{document}");
+
 }
 
 void PrintFirstExpression(FILE *out, DifNode_t *node) {
@@ -80,7 +82,10 @@ void PrintFirstExpression(FILE *out, DifNode_t *node) {
     fprintf(out, "\n\nБыло введено такое выражение: \\begin{dmath*}\n\\textcolor{red}{");
     DoTexInner(node, out);
     fprintf(out, "}\n\\end{dmath*}");
+
+    fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{happy_Lukashov.jpg}\n\\clearpage\n");
 }
+
 void DoTex(DifNode_t *node, const char *value, FILE *out) {
     assert(node);
     assert(value);
@@ -120,7 +125,9 @@ void UploadGraph(FILE *out) {
     assert(out);
 
     fprintf(out, "\n\\clearpage\\section{Чудесные графики чудесных функций!}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{my_points_plot.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{plot1.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{plot2.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{plot_taylor.png}\n");
 }
 
 void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr) {
@@ -128,7 +135,7 @@ void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *Varia
     assert(out);
     assert(VariableArr);
     
-    fprintf(out, "\n\\section{Значение выражения в точке}\n\n");
+    fprintf(out, "\n\\clearpage\\section{Значение выражения в точке}\n\n");
     fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
     if (VariableArr->size > 0) fprintf(out, "при %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
     
@@ -146,7 +153,7 @@ void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answe
     assert(out);
     assert(Variable_Array);
     
-    fprintf(out, "\n\\section{Значение %zu производной в точке}\n\n", num_of_der);
+    fprintf(out, "\n\\clearpage\\section{Значение %zu производной в точке}\n\n", num_of_der);
     fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
     if (Variable_Array->size > 0) fprintf(out, "при %s = %lf", Variable_Array->var_array->variable_name, Variable_Array->var_array->variable_value);
     
@@ -158,6 +165,7 @@ void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answe
     DoTexInner(node, out);
     fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
 }
+
 void DoTexInner(DifNode_t *node, FILE *out) {
     assert(node);
     assert(out);
