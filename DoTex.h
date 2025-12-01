@@ -14,4 +14,5 @@ void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out);
 void UploadGraph(FILE *out);
 void PrintTaylor(DifNode_t *node, const char *main_var, double number, size_t num_pos, FILE *out);
 void PrintFirstExpression(FILE *out, DifNode_t *node);
+void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answer, FILE *out, VariableArr *Variable_Array);
 #endif //DO_TEX_H_

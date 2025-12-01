@@ -27,8 +27,6 @@ static bool IsOne(DifNode_t *node);
 static bool IsNumber(DifNode_t *node);
 static bool IsOperation(DifNode_t *node);
 
-#define NEWN(number) NewNumber(root, number)
-
 DifNode_t *OptimiseTree(DifRoot *root, DifNode_t *node, FILE *out, const char *main_var) {
     assert(root);
     assert(node);
@@ -159,7 +157,8 @@ static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     return node;
 }
 
-#define MUL_(left, right) NewOperationNode(root, kOperationMul, left, right) 
+#define NEWN(num) NewNode(root, kNumber, ((Value){ .number = (num)}), NULL, NULL, NULL)
+#define MUL_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationMul}, left, right, NULL)
 
 static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
@@ -185,13 +184,11 @@ static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
 
         *has_change = true;
-        return NewOperationNode(root, kOperationMul,
-            NEWN(-1), res);
+        return MUL_(NEWN(-1), res);
     }
 
     return node;
 }
-#undef MUL_
 
 static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(node);
@@ -224,7 +221,7 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
 
         *has_change = true;
-        return NewNumber(root, 0);
+        return NEWN(0);
     }
     return node;
 }
@@ -249,7 +246,7 @@ static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
 
         *has_change = true;
-        return NewNumber(root, 0);
+        return NEWN(0);
     }
     return node;
 }
@@ -263,7 +260,7 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
 
         *has_change = true;
-        return NewNumber(root, 0);
+        return NEWN(0);
     }
 
     if (IsZero(node->right)) {
@@ -271,7 +268,7 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
 
         *has_change = true;
-        return NewNumber(root, 1);
+        return NEWN(1);
     }
 
     if (IsOne(node->right)) {
@@ -289,6 +286,7 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
 }
 
 #undef NEWN
+#undef MUL_
 
 static bool IsZero(DifNode_t *node) {
     if (!node) {

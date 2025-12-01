@@ -10,121 +10,114 @@
 #include "DifFunctions.h"
 #include "DoTex.h"
 
-static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfile);
+static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfile, VariableArr *Variable_Array);
 
-DifNode_t *NewNumber(DifRoot *root, double value);
-DifNode_t *NewOperationNode(DifRoot *root, OperationTypes op_type, DifNode_t *left, DifNode_t *right);
+DifNode_t *NewNode(DifRoot *root, DifTypes type, Value value, DifNode_t *left, DifNode_t *right, VariableArr *Variable_Array);
 
 #define PR node->parent
 #define CL CopyNode(root, node->left)
 #define CR CopyNode(root, node->right)
-#define DL Dif(root, node->left, main_var, texfile)
-#define DR Dif(root, node->right, main_var, texfile)
-#define NEWN(number) NewNumber(root, number)
-#define ADD_(left, right) NewOperationNode(root, kOperationAdd, left, right)
-#define SUB_(left, right) NewOperationNode(root, kOperationSub, left, right)
-#define MUL_(left, right) NewOperationNode(root, kOperationMul, left, right) 
-#define DIV_(left, right) NewOperationNode(root, kOperationDiv, left, right) 
-#define POW_(left, right) NewOperationNode(root, kOperationPow, left, right)
-#define SIN_(right) NewOperationNode(root, kOperationSin, NEWN(0), right)
-#define COS_(right) NewOperationNode(root, kOperationCos, NEWN(0), right)
-#define SINH_(right) NewOperationNode(root, kOperationSinh, NEWN(0), right)
-#define COSH_(right) NewOperationNode(root, kOperationCosh, NEWN(0), right)
-#define LN_(right) NewOperationNode(root, kOperationLn, NEWN(0), right)
+#define DL Dif(root, node->left, main_var, texfile, Variable_Array)
+#define DR Dif(root, node->right, main_var, texfile, Variable_Array)
+#define NEWN(num) NewNode(root, kNumber, ((Value){ .number = (num)}), NULL, NULL, Variable_Array)
+#define ADD_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationAdd}, left, right, Variable_Array)
+#define SUB_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationSub}, left, right, Variable_Array)
+#define MUL_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationMul}, left, right, Variable_Array)
+#define DIV_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationDiv}, left, right, Variable_Array)
+#define POW_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationPow}, left, right, Variable_Array)
+#define SIN_(right) NewNode(root, kOperation, (Value){ .operation = kOperationSin}, NULL, right, Variable_Array)
+#define COS_(right) NewNode(root, kOperation, (Value){ .operation = kOperationCos}, NULL, right, Variable_Array)
+#define SINH_(right) NewNode(root, kOperation, (Value){ .operation = kOperationSinh}, NULL, right, Variable_Array)
+#define COSH_(right) NewNode(root, kOperation, (Value){ .operation = kOperationCosh}, NULL, right, Variable_Array)
+#define LN_(right) NewNode(root, kOperation, (Value){ .operation = kOperationLn}, NULL, right, Variable_Array)
 
-DifNode_t *NewNumber(DifRoot *root, double value) {
+
+DifNode_t *NewNode(DifRoot *root, DifTypes type, Value value, DifNode_t *left, DifNode_t *right,
+    VariableArr *Variable_Array) {
     assert(root);
 
     DifNode_t *new_node = NULL;
     NodeCtor(&new_node, NULL);
 
-    root->size ++;
-    new_node->type = kNumber;
-    new_node->value.number = value;
+    root->size++;
+    new_node->type = type;
 
-    return new_node;
-}
+    switch (type) {
 
-DifNode_t *NewVariable(DifRoot *root, const char *variable, VariableArr *VariableArr) {
-    assert(root);
-    assert(variable);
+    case kNumber:
+        new_node->value.number = value.number;
+        break;
 
-    DifNode_t *new_node = NULL;
-    NodeCtor(&new_node, NULL);
-
-    root->size ++;
-    new_node->type = kVariable;
-    VariableInfo *addr = NULL;
-
-    for (size_t i = 0; i < VariableArr->size; i++) {
-        if (strcmp(variable, VariableArr[i].var_array->variable_name) == 0) {
-           addr = VariableArr[i].var_array;
+    case kVariable: {
+        VariableInfo *addr = NULL;
+        for (size_t i = 0; i < Variable_Array->size; i++) {
+            if (strcmp(value.variable->variable_name,
+                       Variable_Array[i].var_array->variable_name) == 0)
+            {
+                addr = Variable_Array[i].var_array;
+                break;
+            }
         }
+
+        if (!addr) {
+            fprintf(stderr, "Unknown variable: %s\n",
+                    value.variable->variable_name);
+            return NULL;
+        }
+
+        new_node->value.variable = addr;
+        break;
     }
 
-    new_node->value.variable = (VariableInfo *) calloc (1, sizeof(VariableInfo));
-        
-    new_node->value.variable = addr;
+    case kOperation:
+        new_node->value.operation = value.operation;
+        new_node->left = left;
+        new_node->right = right;
 
-    return new_node;
-}
+        if (left)  left->parent  = new_node;
+        if (right) right->parent = new_node;
 
-DifNode_t *NewOperationNode(DifRoot *root, OperationTypes op_type, DifNode_t *left, DifNode_t *right) {
-    assert(root);
-    assert(right);
-
-    DifNode_t *new_node = NULL;
-    NodeCtor(&new_node, NULL);
-
-    new_node->type = kOperation;
-    new_node->value.operation = op_type;
-
-    root->size ++;
-    new_node->left = left;
-    new_node->right = right;
-
-    if (left) {
-        left->parent = new_node;
-    }
-
-    if (right) {
-        right->parent = new_node;
+        break;
     }
 
     return new_node;
 }
 
-DifNode_t *CopyNode(DifRoot *root, DifNode_t *node) {
-    assert(root);
-    if (node == NULL) {
-        return NULL;
+DifNode_t *CopyNode(DifRoot *root, DifNode_t *node){
+    if (!node) return NULL;
+
+    DifNode_t *copy = NULL;
+    NodeCtor(&copy, NULL);
+
+    root->size++;
+    copy->type = node->type;
+    copy->parent = NULL;
+
+    switch (node->type) {
+
+    case kNumber:
+        copy->value.number = node->value.number;
+        break;
+
+    case kVariable:
+        // переменная — просто указатель (не копируется)
+        copy->value.variable = node->value.variable;
+        break;
+
+    case kOperation:
+        copy->value.operation = node->value.operation;
+        copy->left  = CopyNode(root, node->left);
+        copy->right = CopyNode(root, node->right);
+
+        if (copy->left)  copy->left->parent  = copy;
+        if (copy->right) copy->right->parent = copy;
+        break;
     }
 
-    DifNode_t *new_node = NULL;
-    if (NodeCtor(&new_node, &node->value) != kSuccess) {
-        fprintf(stderr, "Failed to allocate node in CopyNode.\n");
-        return NULL;
-    }
-
-    root->size ++;
-    new_node->type = node->type;
-    new_node->parent = NULL;
-
-    new_node->left = CopyNode(root, node->left); //
-    if (new_node->left) {
-        new_node->left->parent = new_node;
-    }
-
-    new_node->right = CopyNode(root, node->right);
-    if (new_node->right) {
-        new_node->right->parent = new_node;
-    }
-
-    return new_node;
+    return copy;
 }
 
-
-DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfile) {
+DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfile, VariableArr *Variable_Array) {
     assert(root);
     assert(node);
     assert(main_var);
@@ -173,7 +166,7 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
             result = MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_(CR, NEWN(2)))), DR);
             break;
         case (kOperationPow):
-            result = DoCountPowDerivative(root, node, main_var, texfile);
+            result = DoCountPowDerivative(root, node, main_var, texfile, Variable_Array);
             break;
         case (kOperationSinh):
             result = MUL_(COSH_(CR), DR);
@@ -214,7 +207,7 @@ DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_wi
     return kSuccess;
 }
 
-static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfile) {
+static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfile, VariableArr *Variable_Array) {
     assert(root);
     assert(node);
     assert(main_var);
@@ -235,7 +228,7 @@ static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const cha
     if (!node_right_main) {
         return MUL_(MUL_(CR, POW_(CL, SUB_(CR, NEWN(1)))), DL);
     } 
-    return MUL_(POW_(CL, CR), Dif(root, MUL_(LN_(CL), CR), main_var, texfile));
+    return MUL_(POW_(CL, CR), Dif(root, MUL_(LN_(CL), CR), main_var, texfile, Variable_Array));
 
 }
 
@@ -254,3 +247,27 @@ static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const cha
 #undef COSH_
 #undef LN_
 #undef NEWN
+
+DifNode_t *NewVariable(DifRoot *root, const char *variable, VariableArr *VariableArr) {
+    assert(root);
+    assert(variable);
+
+    DifNode_t *new_node = NULL;
+    NodeCtor(&new_node, NULL);
+
+    root->size ++;
+    new_node->type = kVariable;
+    VariableInfo *addr = NULL;
+
+    for (size_t i = 0; i < VariableArr->size; i++) {
+        if (strcmp(variable, VariableArr[i].var_array->variable_name) == 0) {
+           addr = VariableArr[i].var_array;
+        }
+    }
+
+    new_node->value.variable = (VariableInfo *) calloc (1, sizeof(VariableInfo));
+        
+    new_node->value.variable = addr;
+
+    return new_node;
+}

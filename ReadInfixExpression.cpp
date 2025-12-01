@@ -58,6 +58,13 @@ DifNode_t *GetGoal(DifRoot *root, const char **string, VariableArr *arr, size_t 
     return val;
 }
 
+#define NEWN(num) NewNode(root, kNumber, ((Value){ .number = (num)}), NULL, NULL, arr)
+#define ADD_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationAdd}, left, right, arr)
+#define SUB_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationSub}, left, right, arr)
+#define MUL_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationMul}, left, right, arr)
+#define DIV_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationDiv}, left, right, arr)
+#define POW_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationPow}, left, right, arr)
+
 static DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
     assert(root);
     assert(string);
@@ -73,9 +80,9 @@ static DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr 
         CHECK_NULL_RETURN(val2, GetTerm(root, string, arr, pos));
 
         if (op == '+') {
-            val = NewOperationNode(root, kOperationAdd, val, val2);
+            val = ADD_(val, val2);
         } else if (op == '-') {
-            val = NewOperationNode(root, kOperationSub, val, val2);
+            val = SUB_(val, val2);
         }
         root->size += 1;
     }
@@ -98,11 +105,11 @@ static DifNode_t *GetTerm(DifRoot *root, const char **string, VariableArr *arr, 
         CHECK_NULL_RETURN(val2, GetPrimary(root, string, arr, pos));
 
         if (op == '*') {
-            val = NewOperationNode(root, kOperationMul, val, val2);
+            val = MUL_(val, val2);
         } else if (op == '/') {
-            val = NewOperationNode(root, kOperationDiv, val, val2);
+            val = DIV_(val, val2);
         } else if (op == '^') {
-            val = NewOperationNode(root, kOperationPow, val, val2);
+            val = POW_(val, val2);
         }
         root->size += 1;
     }
@@ -251,7 +258,7 @@ static DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *
         if (type != kOperationNone) {
             free(buf);
             DifNode_t *new_node = GetPrimary(root, string, arr, position); //
-            return NewOperationNode(root, type, NewNumber(root, 0), new_node);
+            return NewNode(root, kOperation, (Value){ .operation = type}, NULL, new_node, arr);
         } else if (type != kOperationPow) {
 
         }
@@ -261,6 +268,13 @@ static DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *
     free(buf);
     return NULL;
 }
+
+#undef NEWN
+#undef ADD_
+#undef SUB_
+#undef MUL_
+#undef DIV_
+#undef POW_
 
 static OperationTypes ParseOperator(const char *string) {
     assert(string);

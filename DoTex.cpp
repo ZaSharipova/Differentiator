@@ -70,7 +70,7 @@ void BeginTex(FILE *out) {
 void EndTex(FILE *out) {
     fprintf(out, "\\clearpage\n");
     fprintf(out, "\n\n\\textbf{Теперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно}.\n\n \\textbf{Смелее закрывайте этот ТЕХ, и будет вам счастье!!}\n");
-    fprintf(out, "\n\\end{document}\n");
+    fprintf(out, "\n\\end{document}");
 }
 
 void PrintFirstExpression(FILE *out, DifNode_t *node) {
@@ -141,6 +141,23 @@ void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *Varia
     fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
 }
 
+void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answer, FILE *out, VariableArr *Variable_Array) {
+    assert(node);
+    assert(out);
+    assert(Variable_Array);
+    
+    fprintf(out, "\n\\section{Значение %zu производной в точке}\n\n", num_of_der);
+    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
+    if (Variable_Array->size > 0) fprintf(out, "при %s = %lf", Variable_Array->var_array->variable_name, Variable_Array->var_array->variable_value);
+    
+    for (size_t i = 1; i < Variable_Array->size; i++) {
+        fprintf(out, ", %s = %lf", Variable_Array->var_array->variable_name, Variable_Array->var_array->variable_value);
+    }
+    
+    fprintf(out, "\n\n\\begin{dmath*}\n");
+    DoTexInner(node, out);
+    fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
+}
 void DoTexInner(DifNode_t *node, FILE *out) {
     assert(node);
     assert(out);
