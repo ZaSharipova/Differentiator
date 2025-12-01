@@ -93,9 +93,7 @@ DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Ar
     strcpy(dump_info->message, "Expression read with infix form");
     DoTreeInGraphviz(root->root, dump_info, root->root);
 
-    fprintf(texfile, "\n\nБыло введено такое выражение: \\begin{dmath*}\n");
-    DoTexInner(root->root, texfile);
-    fprintf(texfile, "\n\\end{dmath*}");
+    PrintFirstExpression(texfile, root->root);
     DoDump(dump_info);
 
     return kSuccess;

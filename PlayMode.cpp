@@ -210,7 +210,7 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
     for (size_t i = 1; i <= ans; i++) {
         //fprintf(out, "\n\n\\textbf{Посчитаем %zu производную:}\n\n", i);
         if (!forest->trees[i].root) {
-            fprintf(out, "\\clearpage\\section{Дифференцируем %d раз}\n\n", i);
+            fprintf(out, "\\clearpage\\section{Дифференцируем %d раз}\n\n\\noindent\n", i);
             new_tree = Dif(&forest->trees[i], forest->trees[i-1].root, main_var, out);
             if (!new_tree) {
                 fprintf(stderr, "Dif failed on derivative %zu\n", i);
@@ -226,7 +226,7 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
             DoDump(DumpInfo);
             DoTex(forest->trees[i].root, main_var, out);
 
-            fprintf(out, "\n\\subsection{Попробуем упростить выражение}\n");
+            fprintf(out, "\n\\subsection{Попробуем упростить выражение}\n\n\\noindent\n");
             forest->trees[i].root = OptimiseTree(&forest->trees[i], forest->trees[i].root, out, main_var);
             DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
             snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Optimised tree after counting (%zu) derivative", i);
@@ -249,7 +249,7 @@ static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpI
     double res = SolveEquation(root2);
     printf("Результат вычисления выражения значения %zu производной: %lf\n", amount_of_dif, res);
 
-    
+
     PrintSolution(root2->root, res, out, Variable_Array);
     strcpy(DumpInfo->message, " Calculate expression in a position in derived expression");
     DoTreeInGraphviz(root2->root, DumpInfo, root2->root);
@@ -354,7 +354,7 @@ static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FIL
     scanf("%zu", &num_pos);
 
     DifRoot root_last = {};
-    fprintf(out, "\\clearpage\n\\section{Разложим по формуле Тейлора}");
+    fprintf(out, "\\clearpage\n\\section{Разложим по формуле Тейлора}\n\n\\noindent\n");
     DoNDif(forest, root, &root_last, num_pos, out, DumpInfo, main_var);
     DifRoot *new_root = CountTaylor(forest, main_var, num_pos, number, Variable_Array);
     new_root->root = OptimiseTree(new_root, new_root->root, out, main_var);
@@ -366,9 +366,7 @@ static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FIL
     snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Taylor polinomial");
     DumpInfo->tree = new_root;
     DoDump(DumpInfo);
-    fprintf(out, "\\begin{dmath*} f(%s) = ", main_var);
-    DoTexInner(new_root->root, out);
-    fprintf(out, "\\ + o((x - %lf)^%zu) \\end{dmath*}", number, num_pos);
+    PrintTaylor(new_root->root, main_var, number, num_pos, out);
 
     return kSuccess;
 }

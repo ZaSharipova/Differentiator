@@ -73,16 +73,24 @@ void EndTex(FILE *out) {
     fprintf(out, "\n\\end{document}\n");
 }
 
+void PrintFirstExpression(FILE *out, DifNode_t *node) {
+    assert(out);
+    assert(node);
+
+    fprintf(out, "\n\nБыло введено такое выражение: \\begin{dmath*}\n\\textcolor{red}{");
+    DoTexInner(node, out);
+    fprintf(out, "}\n\\end{dmath*}");
+}
 void DoTex(DifNode_t *node, const char *value, FILE *out) {
     assert(node);
     assert(value);
     assert(out);
     
-    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
+    fprintf(out, "\n\\vspace{1em}\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
     
-    fprintf(out, "\\begin{dmath*} \\frac{df}{d%s} = ", value);
+    fprintf(out, "\n\\begin{math} \\frac{df}{d%s} = ", value);
     DoTexInner(node, out);
-    fprintf(out, "\\end{dmath*}\n");
+    fprintf(out, "\\end{math}\n\n");
 }
 
 void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out) {
@@ -90,13 +98,23 @@ void PrintShrich(DifNode_t *node, DifNode_t *result, FILE *out) {
     assert(result);
     assert(out);
     
-    fprintf(out, "\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
-    fprintf(out, "\n\\begin{dmath*}(");
+    fprintf(out, "\n\\vspace{1em}\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
+    fprintf(out, "\n\\begin{math}(");
     DoTexInner(node, out);
     fprintf(out, ")' = ");
     DoTexInner(result, out);
-    fprintf(out, "\\end{dmath*}");
+    fprintf(out, "\\end{math}\n");
 } 
+
+void PrintTaylor(DifNode_t *node, const char *main_var, double number, size_t num_pos, FILE *out) {
+    assert(node);
+    assert(main_var);
+    assert(out);
+
+    fprintf(out, "\\begin{dmath*} f(%s) = ", main_var);
+    DoTexInner(node, out);
+    fprintf(out, "\\ + o((x - %.0lf)^%zu) \\end{dmath*}", number, num_pos);
+}
 
 void UploadGraph(FILE *out) {
     assert(out);
