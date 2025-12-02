@@ -34,6 +34,7 @@ size_t max_op_size = 5; //
 static DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
 static DifNode_t *GetTerm(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
 static DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
+static DifNode_t *GetPower(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
 
 static DifNode_t *GetNumber(DifRoot *root, const char **string);
 static DifNode_t *GetString(DifRoot *root, const char **string, VariableArr *arr, size_t *pos);
@@ -91,31 +92,40 @@ static DifNode_t *GetExpression(DifRoot *root, const char **string, VariableArr 
 }
 
 static DifNode_t *GetTerm(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
+    CHECK_NULL_RETURN(val, GetPower(root, string, arr, pos));
+
+    while (**string == '*' || **string == '/') {
+        char op = **string;
+        (*string)++;
+
+        CHECK_NULL_RETURN(val2, GetPower(root, string, arr, pos));
+
+        if (op == '*')
+            val = MUL_(val, val2);
+        else
+            val = DIV_(val, val2);
+    }
+
+    return val;
+}
+
+static DifNode_t *GetPower(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
     assert(root);
     assert(string);
     assert(arr);
     assert(pos);
 
     CHECK_NULL_RETURN(val, GetPrimary(root, string, arr, pos));
-    root->size ++;
 
-    while (**string == '*' || **string == '/' || **string == '^') {
-        int op = **string;
+    while (**string == '^') {
         (*string)++;
-        CHECK_NULL_RETURN(val2, GetPrimary(root, string, arr, pos));
-
-        if (op == '*') {
-            val = MUL_(val, val2);
-        } else if (op == '/') {
-            val = DIV_(val, val2);
-        } else if (op == '^') {
-            val = POW_(val, val2);
-        }
-        root->size += 1;
+        CHECK_NULL_RETURN(val2, GetPower(root, string, arr, pos));
+        val = POW_(val, val2);
     }
 
     return val;
 }
+
 
 static DifNode_t *GetPrimary(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
     assert(root);

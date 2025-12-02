@@ -57,10 +57,12 @@ DifErrors DeleteNode(DifNode_t *node) {
 
     if (node->left) {
         DeleteNode(node->left);
+        node->left = NULL;
     }
 
     if (node->right) {
         DeleteNode(node->right);
+        node->right = NULL;
     }
 
     node->parent = NULL;

@@ -2,10 +2,14 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <math.h>
+#include <string.h>
+
 #include "Enums.h"
 #include "Structs.h"
 
 static bool IsNegativeNumber(DifNode_t *node);
+void printDouble(FILE *out, double x);
 
 const char *TexPhrasesArray[] = {
     "Путём нетрудных преобразований",
@@ -171,7 +175,7 @@ void DoTexInner(DifNode_t *node, FILE *out) {
     assert(out);
 
     if (node->type == kNumber) {
-        fprintf(out, "%lg", node->value.number);
+        printDouble(out, node->value.number);
         return;
     }
 
@@ -180,21 +184,26 @@ void DoTexInner(DifNode_t *node, FILE *out) {
         return;
     }
 
+    //fprintf(stderr, "%d ", node->value.operation);
     switch (node->value.operation) {
         case (kOperationAdd):
-            fprintf(out, "(");
+            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv
+                || node->parent->value.operation == kOperationPow)) fprintf(out, "(");
             DoTexInner(node->left, out);
             fprintf(out, " + ");
             DoTexInner(node->right, out);
-            fprintf(out, ")");
+            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv
+                || node->parent->value.operation == kOperationPow)) fprintf(out, ")");
             break;
 
         case (kOperationSub):
-            fprintf(out, "(");
+            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv
+                || node->parent->value.operation == kOperationPow)) fprintf(out, "(");
             DoTexInner(node->left, out);
             fprintf(out, " - ");
             DoTexInner(node->right, out);
-            fprintf(out, ")");
+            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv 
+                || node->parent->value.operation == kOperationPow)) fprintf(out, ")");
             break;
 
         case (kOperationMul):
@@ -205,6 +214,7 @@ void DoTexInner(DifNode_t *node, FILE *out) {
             //     if (IsNegativeNumber(node->right)) fprintf(out, ")");
             //     break;
             // }
+            if (node->parent && node->parent->value.operation == kOperationPow) fprintf(out, "(");
             if (IsNegativeNumber(node->left)) fprintf(out, "(");
             DoTexInner(node->left, out);
             if (IsNegativeNumber(node->left)) fprintf(out, ")");
@@ -212,6 +222,7 @@ void DoTexInner(DifNode_t *node, FILE *out) {
             if (IsNegativeNumber(node->right)) fprintf(out, "(");
             DoTexInner(node->right, out);
             if (IsNegativeNumber(node->right)) fprintf(out, ")");
+            if (node->parent && node->parent->value.operation == kOperationPow) fprintf(out, ")");
             break;
 
         case (kOperationDiv):
@@ -285,4 +296,25 @@ void DoTexInner(DifNode_t *node, FILE *out) {
 
 static bool IsNegativeNumber(DifNode_t *node) {
     return (node->type == kNumber && node->value.number < 0);
+}
+
+void printDouble(FILE *out, double x) {
+    assert(out);
+
+    if (fabs(x) < eps) {
+        fprintf(out, "0");
+        return;
+    }
+
+    char buf[64] = {};
+    snprintf(buf, sizeof(buf), "%.6f", x);
+
+    char *ptr = buf + strlen(buf) - 1;
+    while (*ptr == '0' && ptr > buf) ptr--;
+
+    if (*ptr == '.') ptr--;
+
+    *(ptr + 1) = '\0';
+
+    fprintf(out, "%s", buf);
 }

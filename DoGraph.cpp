@@ -58,7 +58,7 @@ static void PrintDotNode(FILE *file, const DifNode_t *node, const DifNode_t *nod
     const char *color_variable  = "gold";
 
     if (node->type == kNumber || node->type == kVariable) {
-        fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Operation: %s\n", 
+        fprintf(file, "    \"%p\" [label=\"Parent: %p \n  Addr: %p \n  Type: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
         if (node->type == kNumber) {
             fprintf(file, "  Value: %lf  \nLeft: %p | Right: %p\" shape=egg color=black fillcolor=%s style=filled width=4 height=1.5 fixedsize=true];\n", 
@@ -68,7 +68,7 @@ static void PrintDotNode(FILE *file, const DifNode_t *node, const DifNode_t *nod
                 (node->value).variable->variable_name, (void *)node->left, (void *)node->right, color_variable);
         }
     } else if (node->type == kOperation) {
-        fprintf(file, "    \"%p\" [label=\"{Parent: %p \n | Addr: %p \n | Operation: %s\n", 
+        fprintf(file, "    \"%p\" [label=\"{Parent: %p \n | Addr: %p \n | Type: %s\n", 
             (void *)node, (void *)node->parent, (void *)node, PrintOperationType(node));
         fprintf(file, " | Value: %s | {Left: %p | Right: %p}}\" shape=Mrecord color=black fillcolor=%s, style=filled];\n", 
                 PrintExpressionType(node).operation_name, (void *)node->left, (void *)node->right, PrintExpressionType(node).color);

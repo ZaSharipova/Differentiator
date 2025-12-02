@@ -324,7 +324,7 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     }
     double copied_value = node_var->value.variable->variable_value;
 
-    for (double i = -10.0; i < 10.0; i += 0.1) {
+    for (double i = -6.0; i < 6.0; i += 0.1) {
         node_var->value.variable->variable_value = i;
         fprintf(out, "%f ", i);
         fprintf(out, "%f\n", SolveEquation(root));

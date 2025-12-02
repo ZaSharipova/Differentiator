@@ -38,9 +38,15 @@ DifNode_t *OptimiseTree(DifRoot *root, DifNode_t *node, FILE *out, const char *m
     while (has_change) {
         has_change = false;
         node = ConstOptimise(root, node, &has_change); 
-        if (has_change) DoTex(node, main_var, out);
+        if (has_change) {
+            node->parent = NULL;
+            DoTex(node, main_var, out);
+        }
         node = EraseNeutralElements(root, node, &has_change);
-        if (has_change) DoTex(node, main_var, out);
+        if (has_change) {
+            node->parent = NULL;
+            DoTex(node, main_var, out);
+        }
     }
 
     node->parent = NULL;
@@ -125,20 +131,27 @@ DifNode_t *EraseNeutralElements(DifRoot *root, DifNode_t *node, bool *has_change
     return node;
 }
 
-
 static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(root);
     assert(node);
     assert(has_change);
 
-
-   if (IsZero(node->left)) {
+    if (IsZero(node->left)) {
         DifNode_t *res = node->right;
 
-        root->size -= 2;
-        node->right = node->left = NULL;
-        DeleteNode(node);
+        size_t removed = 1 + CountSubTreeSize(node->left);
+        if (res) res->parent = node->parent;
 
+        if (node->left) {
+            node->left->parent = NULL;
+            DeleteNode(node->left);
+            node->left = NULL;
+        }
+
+        node->right = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
@@ -146,10 +159,19 @@ static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     if (IsZero(node->right)) {
         DifNode_t *res = node->left;
 
-        root->size -= 2;
-        node->right = node->left = NULL;
-        DeleteNode(node);
+        size_t removed = 1 + CountSubTreeSize(node->right);
+        if (res) res->parent = node->parent;
 
+        if (node->right) {
+            node->right->parent = NULL;
+            DeleteNode(node->right);
+            node->right = NULL;
+        }
+
+        node->left = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
@@ -157,50 +179,80 @@ static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     return node;
 }
 
-#define NEWN(num) NewNode(root, kNumber, ((Value){ .number = (num)}), NULL, NULL, NULL)
-#define MUL_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationMul}, left, right, NULL)
-
 static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
+    assert(root);
     assert(node);
     assert(has_change);
 
     if (IsZero(node->right)) {
         DifNode_t *res = node->left;
 
-        root->size -= 2;
-        node->left = node->right = NULL;
-        DeleteNode(node);
+        size_t removed = 1 + CountSubTreeSize(node->right);
+        if (res) res->parent = node->parent;
 
+        if (node->right) {
+            node->right->parent = NULL;
+            DeleteNode(node->right);
+            node->right = NULL;
+        }
+
+        node->left = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
 
-
     if (IsZero(node->left)) {
-        DifNode_t *res = node->right;
+        DifNode_t *right = node->right;
+        size_t removed = 1 + CountSubTreeSize(node->left);
 
-        node->right = node->left = NULL;
-        root->size -= 2;
-        DeleteNode(node);
+        if (right) right->parent = NULL;
+        if (node->left) {
+            node->left->parent = NULL;
+            DeleteNode(node->left);
+            node->left = NULL;
+        }
+
+        node->right = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
+
+        DifNode_t *neg = NewNode(root, kNumber, (Value){ .number = -1.0 }, NULL, NULL, NULL);
+        DifNode_t *mul = NewNode(root, kOperation, (Value){ .operation = kOperationMul }, neg, right, NULL);
+        if (neg) neg->parent = mul;
+        if (right) right->parent = mul;
 
         *has_change = true;
-        return MUL_(NEWN(-1), res);
+        return mul;
     }
 
     return node;
 }
 
 static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
+    assert(root);
     assert(node);
     assert(has_change);
 
     if (IsOne(node->left)) {
         DifNode_t *res = node->right;
 
-        node->left = node->right = NULL;
-        root->size -= 2;
-        DeleteNode(node);
+        size_t removed = 1 + CountSubTreeSize(node->left);
+        if (res) res->parent = node->parent;
 
+        if (node->left) {
+            node->left->parent = NULL;
+            DeleteNode(node->left);
+            node->left = NULL;
+        }
+
+        node->right = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
@@ -208,83 +260,118 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     if (IsOne(node->right)) {
         DifNode_t *res = node->left;
 
-        node->left = node->right = NULL;
-        root->size -= 2;
-        DeleteNode(node);
+        size_t removed = 1 + CountSubTreeSize(node->right);
+        if (res) res->parent = node->parent;
 
+        if (node->right) {
+            node->right->parent = NULL;
+            DeleteNode(node->right);
+            node->right = NULL;
+        }
+
+        node->left = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
 
     if (IsZero(node->left) || IsZero(node->right)) {
-        root->size -= CountSubTreeSize(node);
+        size_t removed = CountSubTreeSize(node);
         DeleteNode(node);
 
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        return NEWN(0);
+
+        DifNode_t *zero = NewNode(root, kNumber, (Value){ .number = 0.0 }, NULL, NULL, NULL);
+        return zero;
     }
+
     return node;
 }
 
 static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
+    assert(root);
     assert(node);
     assert(has_change);
 
     if (IsOne(node->right)) {
         DifNode_t *res = node->left;
 
-        node->left = node->right = NULL;
-        root->size -= 2;
-        DeleteNode(node);
+        size_t removed = 1 + CountSubTreeSize(node->right);
+        if (res) res->parent = node->parent;
 
+        if (node->right) {
+            node->right->parent = NULL;
+            DeleteNode(node->right);
+            node->right = NULL;
+        }
+
+        node->left = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
 
     if (IsZero(node->left)) {
-        root->size -= CountSubTreeSize(node);
+        size_t removed = CountSubTreeSize(node);
         DeleteNode(node);
-
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        return NEWN(0);
+        DifNode_t *zero = NewNode(root, kNumber, (Value){ .number = 0.0 }, NULL, NULL, NULL);
+        return zero;
     }
+
     return node;
 }
 
 static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
+    assert(root);
     assert(node);
     assert(has_change);
 
     if (IsZero(node->left)) {
-        root->size -= CountSubTreeSize(node);
+        size_t removed = CountSubTreeSize(node);
         DeleteNode(node);
-
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        return NEWN(0);
+        DifNode_t *zero = NewNode(root, kNumber, (Value){ .number = 0.0 }, NULL, NULL, NULL);
+        return zero;
     }
 
     if (IsZero(node->right)) {
-        root->size -= CountSubTreeSize(node);
+        size_t removed = CountSubTreeSize(node);
         DeleteNode(node);
-
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        return NEWN(1);
+        DifNode_t *one = NewNode(root, kNumber, (Value){ .number = 1.0 }, NULL, NULL, NULL);
+        return one;
     }
 
     if (IsOne(node->right)) {
         DifNode_t *res = node->left;
+        size_t removed = 1 + CountSubTreeSize(node->right);
+        if (res) res->parent = node->parent;
 
-        root->size -= 2;
-        node->left = node->right = NULL;
-        DeleteNode(node);
+        if (node->right) {
+            node->right->parent = NULL;
+            DeleteNode(node->right);
+            node->right = NULL;
+        }
 
+        node->left = NULL;
+        free(node);
+
+        if (root->size >= removed) root->size -= removed;
         *has_change = true;
         return res;
     }
 
     return node;
 }
-
 #undef NEWN
 #undef MUL_
 
