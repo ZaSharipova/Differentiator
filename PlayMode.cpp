@@ -33,15 +33,16 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t an
 static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var, Forest *forest);
 
 static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var);
-static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out);
+static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, double pos_taylor);
+static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double pos);
 
-static void DoSystemForGnuplot(const char *main_var);
+static void DoSystemForGnuplot(const char *main_var, double pos);
 
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
     FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest);
 static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *out);
 
-static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FILE *out, VariableArr *Variable_Array);
+static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FILE *out, VariableArr *Variable_Array, double *position_taylor);
 static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number, double num_pos, VariableArr *Variable_Array);
 static void ReadDerivativeParameters(char *var, size_t *amount_of_dif);
 
@@ -61,7 +62,6 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
     assert(Dump_Info);
 
     DifErrors err = kSuccess;
-    // CHECK_ERROR_RETURN(VerifyTree(root));
 
     Forest forest = {};
     ForestCtor(&forest, 3);
@@ -114,19 +114,17 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
         case kCount:
             return DoCountCase(root, Variable_Array, out);
             
-        case kGraph: //TODO 
-            // return DoGnuplot(root, Variable_Array, forest);
+        case kGraph: 
             return kSuccess;
             
         case kExit:
             *flag_end = true;
             return kSuccess;
             
-        case kTeilor:  {    
-            DoTaylor(forest, root, DumpInfo, out, Variable_Array);      
+        case kTeilor:  {     
             return kSuccess;
         }
-            
+
         default:
             fprintf(stderr, "Неизвестная команда.\n");
             return kFailure;
@@ -146,8 +144,9 @@ static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array,
     ans = kDerivativeInPos;
     DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest);
     DoCountCase(root, Variable_Array, out);
-    DoTaylor(forest, root, DumpInfo, out, Variable_Array);
-    DoGnuplot(root, Variable_Array, forest, out);
+    double pos_taylor = 0;
+    DoTaylor(forest, root, DumpInfo, out, Variable_Array, &pos_taylor);
+    DoGnuplot(root, Variable_Array, forest, out, pos_taylor);
 
     printf(GREEN "Скорее смотрите ДАМП и ТЕХ!!!\n" RESET);
 
@@ -173,7 +172,7 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
 
     DifErrors err = DoNDif(forest, root, &root_last, amount_of_dif, out, DumpInfo, var, Variable_Array);
     if (err != kSuccess) {
-        ForestDtor(forest); //
+        ForestDtor(forest);
         return err;
     }
 
@@ -200,11 +199,9 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
     assert(DumpInfo);
     assert(main_var);
 
-    //DifRoot *node_to_dif = root;
     DifNode_t *new_tree = NULL;
 
     for (size_t i = 1; i <= ans; i++) {
-        //fprintf(out, "\n\n\\textbf{Посчитаем %zu производную:}\n\n", i);
         if (!forest->trees[i].root) {
             fprintf(out, "\\clearpage\\section{Дифференцируем %zu раз}\n\n\\noindent\n", i);
             new_tree = Dif(&forest->trees[i], forest->trees[i-1].root, main_var, out, Variable_Array);
@@ -214,7 +211,6 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
                 return kFailure;
             }
             forest->trees[i].root = new_tree;
-            //root_last->root = forest->trees[i].root;
 
             DumpInfo->tree = &forest->trees[i];
             snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
@@ -252,7 +248,7 @@ static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpI
     DoDump(DumpInfo);
 }
 
-static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out) {
+static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, double pos_taylor) {
     assert(root_written);
     assert(Variable_Array);
     assert(forest);
@@ -266,21 +262,14 @@ static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, 
 
     PrintGnuplot("gnuplot1.txt", root_written, main_var);
     PrintGnuplot("gnuplot2.txt", &forest->trees[1], main_var);
-    PrintGnuplot("gnuplot3.txt", &forest->trees[forest->size - 1], main_var);
+    PrintGnuplotInPos("gnuplot3.txt", &forest->trees[forest->size - 1], main_var, pos_taylor);
 
-
-    DoSystemForGnuplot(main_var);
+    DoSystemForGnuplot(main_var, pos_taylor);
     
     UploadGraph(out);
-    fprintf(out, "\n\\textcolor{red}{Красный:} \n\\begin{dmath*}");
-    DoTexInner(root_written->root, out);
-    fprintf(out, "\\end{dmath*}\n\n");
-    fprintf(out, "\\textcolor{green}{Зеленый:} \n\\begin{dmath*}");
-    DoTexInner(forest->trees[1].root, out);
-    fprintf(out, "\\end{dmath*}\n\n");
-    fprintf(out, "\\textcolor{blue}{Голубой:} \n\\begin{dmath*}");
-    DoTexInner(forest->trees[forest->size - 1].root, out);
-    fprintf(out, "\\end{dmath*}\n\n");
+    PrintColoredNaming(out, root_written->root, "red", "Красный");
+    PrintColoredNaming(out, forest->trees[1].root, "green", "Зеленый");
+    PrintColoredNaming(out, forest->trees[forest->size - 1].root, "blue", "Голубой");
     
     return kSuccess;
 }
@@ -297,6 +286,33 @@ static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *o
     return kSuccess;
 }
 
+static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double pos) {
+    assert(filename);
+    assert(root);
+    assert(main_var);
+
+    FILE_OPEN_AND_CHECK(out, filename, "w");
+
+    DifNode_t *node = root->root;
+
+    DifNode_t *node_var = NULL;
+    FindMainVar(node, main_var, &node_var);
+    if (!node_var) {
+        fprintf(stderr, "Error: variable '%s' not found in expression tree!\n", main_var);
+        return kFailure;
+    }
+    double copied_value = node_var->value.variable->variable_value;
+
+    for (double i = pos - 0.01; i < pos + 0.01; i += 0.001) {
+        node_var->value.variable->variable_value = i;
+        fprintf(out, "%f ", i);
+        fprintf(out, "%f\n", SolveEquation(root)); //
+    }
+    node_var->value.variable->variable_value = copied_value;
+    fclose(out);
+
+    return kSuccess;
+}
 static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var) {
     assert(filename);
     assert(root);
@@ -324,7 +340,7 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     }
     double copied_value = node_var->value.variable->variable_value;
 
-    for (double i = -6.0; i < 6.0; i += 0.1) {
+    for (double i = -3.0; i < 3.0; i += 0.0001) {
         node_var->value.variable->variable_value = i;
         fprintf(out, "%f ", i);
         fprintf(out, "%f\n", SolveEquation(root));
@@ -332,11 +348,12 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     node_var->value.variable->variable_value = copied_value;
 }
 
-static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FILE *out, VariableArr *Variable_Array) {
+static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FILE *out, VariableArr *Variable_Array, double *position_taylor) {
     assert(forest);
     assert(root);
     assert(DumpInfo);
     assert(out);
+    assert(position_taylor);
 
     char main_var[MAX_TEXT_SIZE] = {};
     printf(BLUE "По какой переменной хотите разложить по Тейлору:\n" RESET);
@@ -344,12 +361,18 @@ static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FIL
     printf(BLUE "В окрестности какой точки хотите разложить:\n" RESET);
     double number = 0;
     scanf("%lf", &number);
+    for (size_t i = 0; i < Variable_Array->size; i++) {
+        if (strcmp(main_var, Variable_Array->var_array->variable_name) == 0) {
+            Variable_Array->var_array->variable_value = number;
+        }
+    }
+    *position_taylor = number;
     size_t num_pos = 0;
     printf(BLUE "Для какой производной вы хотите посчитать:\n" RESET);
     scanf("%zu", &num_pos);
 
     DifRoot root_last = {};
-    fprintf(out, "\\clearpage\n\\section{Разложим по формуле Тейлора}\n\n\\noindent\n");
+    fprintf(out, "\\clearpage\n\\section{Разложим по формуле Тейлора в окрестности точки %lf}\n\n\\noindent\n", *position_taylor);
     DoNDif(forest, root, &root_last, num_pos, out, DumpInfo, main_var, Variable_Array);
     DifRoot *new_root = CountTaylor(forest, main_var, num_pos, number, Variable_Array);
     new_root->root = OptimiseTree(new_root, new_root->root, out, main_var);
@@ -396,6 +419,7 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
 
     DifNode_t *result = NEWN(0);
     taylor_root->root = result;
+    
 
     for (size_t i = 0; i <= number; i++) {
         root = &forest->trees[i];
@@ -420,7 +444,7 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
 #undef MUL_
 #undef POW_
 
-static void DoSystemForGnuplot(const char *main_var) {
+static void DoSystemForGnuplot(const char *main_var, double pos) {
     assert(main_var);
 
     char command1[10000] = {};
@@ -459,14 +483,16 @@ static void DoSystemForGnuplot(const char *main_var) {
         "set terminal pngcairo size 1200,600;"
         "set output 'plot_taylor.png';"
         "set grid;"
+        "set size ratio 1/10;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
+        "set xrange[%lf:%lf];"
         "set title 'Taylor comparison';"
         "plot "
         "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'function', "
         "'gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial';"
         "\"",
-        main_var
+        main_var, pos - 0.01, pos + 0.01
     );
 
     int result1 = system(command1);

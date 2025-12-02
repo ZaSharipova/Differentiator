@@ -41,6 +41,8 @@ static DifNode_t *GetString(DifRoot *root, const char **string, VariableArr *arr
 static DifNode_t *GetOperation(DifRoot *root, const char **string, VariableArr *arr, size_t *position);
 static OperationTypes ParseOperator(const char *string);
 
+static void ConvertString(DifNode_t *var_node, VariableArr *arr, size_t *pos, const char *buf);
+
 
 DifNode_t *GetGoal(DifRoot *root, const char **string, VariableArr *arr, size_t *pos) {
     assert(root);
@@ -218,26 +220,7 @@ static DifNode_t *GetString(DifRoot *root, const char **string, VariableArr *arr
 
     var_node->type = kVariable;
     
-    bool flag_found = false;
-    Value val = {};
-
-    for (size_t i = 0; i < *pos; i++) {
-        if (strcmp(arr->var_array[i].variable_name, buf) == 0) {
-            val.variable = &arr->var_array[i];
-            var_node->value = val;
-            flag_found = true;
-        }
-    }
-
-    ResizeArray(arr);
-
-    if (!flag_found) {
-        arr->var_array[*pos].variable_name = buf;
-        val.variable = &arr->var_array[*pos];
-        arr->size ++;
-        var_node->value = val;
-        (*pos)++;
-    }
+    ConvertString(var_node, arr, pos, buf);
 
     return var_node;
 }
@@ -298,4 +281,33 @@ static OperationTypes ParseOperator(const char *string) {
     }
 
     return kOperationNone;
+}
+
+static void ConvertString(DifNode_t *var_node, VariableArr *arr, size_t *pos, const char *buf) {
+    assert(var_node);
+    assert(arr);
+    assert(pos);
+    assert(buf);
+
+    bool flag_found = false;
+    Value val = {};
+
+    for (size_t i = 0; i < *pos; i++) {
+        if (strcmp(arr->var_array[i].variable_name, buf) == 0) {
+            val.variable = &arr->var_array[i];
+            var_node->value = val;
+            flag_found = true;
+        }
+    }
+
+    ResizeArray(arr);
+
+    if (!flag_found) {
+        arr->var_array[*pos].variable_name = buf;
+        val.variable = &arr->var_array[*pos];
+        arr->size ++;
+        var_node->value = val;
+        (*pos)++;
+    }
+
 }

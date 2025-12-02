@@ -152,6 +152,17 @@ void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *Varia
     fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
 }
 
+void PrintColoredNaming(FILE *out, DifNode_t *node, const char *color, const char *color_rus) {
+    assert(node);
+    assert(out);
+    assert(color);
+    assert(color_rus);
+    
+    fprintf(out, "\n\\textcolor{%s}{%s:} \n\\begin{dmath*}", color, color_rus);
+    DoTexInner(node, out);
+    fprintf(out, "\\end{dmath*}\n\n");
+}
+
 void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answer, FILE *out, VariableArr *Variable_Array) {
     assert(node);
     assert(out);

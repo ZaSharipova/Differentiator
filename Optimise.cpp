@@ -131,6 +131,9 @@ DifNode_t *EraseNeutralElements(DifRoot *root, DifNode_t *node, bool *has_change
     return node;
 }
 
+#define NEWN(num) NewNode(root, kNumber, (Value){ .number = (num)}, NULL, NULL, NULL)
+#define MUL_(left, right) NewNode(root, kOperation, (Value){ .operation = kOperationMul}, left, right, NULL)
+
 static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) {
     assert(root);
     assert(node);
@@ -219,9 +222,8 @@ static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         free(node);
 
         if (root->size >= removed) root->size -= removed;
-
-        DifNode_t *neg = NewNode(root, kNumber, (Value){ .number = -1.0 }, NULL, NULL, NULL);
-        DifNode_t *mul = NewNode(root, kOperation, (Value){ .operation = kOperationMul }, neg, right, NULL);
+        DifNode_t *neg = NEWN(-1.0);
+        DifNode_t *mul = MUL_(neg, right);
         if (neg) neg->parent = mul;
         if (right) right->parent = mul;
 
@@ -259,7 +261,6 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
 
     if (IsOne(node->right)) {
         DifNode_t *res = node->left;
-
         size_t removed = 1 + CountSubTreeSize(node->right);
         if (res) res->parent = node->parent;
 
@@ -284,7 +285,7 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         if (root->size >= removed) root->size -= removed;
         *has_change = true;
 
-        DifNode_t *zero = NewNode(root, kNumber, (Value){ .number = 0.0 }, NULL, NULL, NULL);
+        DifNode_t *zero = NEWN(0.0);
         return zero;
     }
 
@@ -321,7 +322,7 @@ static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
         if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        DifNode_t *zero = NewNode(root, kNumber, (Value){ .number = 0.0 }, NULL, NULL, NULL);
+        DifNode_t *zero = NEWN(0.0);
         return zero;
     }
 
@@ -338,7 +339,7 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
         if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        DifNode_t *zero = NewNode(root, kNumber, (Value){ .number = 0.0 }, NULL, NULL, NULL);
+        DifNode_t *zero = NEWN(0.0);
         return zero;
     }
 
@@ -347,7 +348,7 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
         DeleteNode(node);
         if (root->size >= removed) root->size -= removed;
         *has_change = true;
-        DifNode_t *one = NewNode(root, kNumber, (Value){ .number = 1.0 }, NULL, NULL, NULL);
+        DifNode_t *one = NEWN(1);
         return one;
     }
 

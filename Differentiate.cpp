@@ -52,16 +52,10 @@ DifNode_t *NewNode(DifRoot *root, DifTypes type, Value value, DifNode_t *left, D
         VariableInfo *addr = NULL;
         for (size_t i = 0; i < Variable_Array->size; i++) {
             if (strcmp(value.variable->variable_name,
-                       Variable_Array[i].var_array->variable_name) == 0) {
+                    Variable_Array[i].var_array->variable_name) == 0) {
                 addr = Variable_Array[i].var_array;
                 break;
             }
-        }
-
-        if (!addr) {
-            fprintf(stderr, "Unknown variable: %s\n",
-                    value.variable->variable_name);
-            return NULL;
         }
 
         new_node->value.variable = addr;
@@ -98,7 +92,6 @@ DifNode_t *CopyNode(DifRoot *root, DifNode_t *node){
         break;
 
     case kVariable:
-        // переменная — просто указатель (не копируется)
         copy->value.variable = node->value.variable;
         break;
 
@@ -187,6 +180,7 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
 }
 
 DifErrors FindMainVar(DifNode_t *node, const char *main_var, DifNode_t **node_with_main_var) {
+    assert(main_var);
     if (!node) {
         return kSuccess;
     }
@@ -226,6 +220,7 @@ static DifNode_t *DoCountPowDerivative(DifRoot *root, DifNode_t *node, const cha
     if (!node_right_main) {
         return MUL_(MUL_(CR, POW_(CL, SUB_(CR, NEWN(1)))), DL);
     } 
+
     return MUL_(POW_(CL, CR), Dif(root, MUL_(LN_(CL), CR), main_var, texfile, Variable_Array));
 
 }
