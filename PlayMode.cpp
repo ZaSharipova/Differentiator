@@ -32,14 +32,14 @@ static FILE *SelectInputFile(void);
 static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var, VariableArr *Variable_Array);
 static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var, Forest *forest);
 
-static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var);
-static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, double pos_taylor);
-static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double pos);
+static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var, double border1, double border2);
+static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, char *string);
+static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double border_1, double border_2);
 
-static void DoSystemForGnuplot(const char *main_var, double pos);
+static void DoSystemForGnuplot(const char *main_var, Positions *position);
 
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
-    FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest);
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest, char *main_var);
 static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *out);
 
 static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FILE *out, VariableArr *Variable_Array, double *position_taylor);
@@ -48,14 +48,18 @@ static void ReadDerivativeParameters(char *var, size_t *amount_of_dif);
 
 static DiffModes PrintMenuAndAskMode(void);
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
-    FILE *out, DumpInfo *DumpInfo, bool *flag_end, Forest *forest);
+    FILE *out, DumpInfo *DumpInfo, bool *flag_end, Forest *forest, char *string);
 
 static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
-    FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest);
+    FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest, char *string);
+
+static DifNode_t *BuildTangent(Forest *forest, DifRoot *root, DifRoot *derivative, double pos, const char *main_var, VariableArr *Variable_Array);
+static Positions ReadPositions(char *string);
+static void ScanfTwoPositions(double *pos1, double *pos2, char **string);
 
 static const char *AskFilename(void);
 
-DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *Dump_Info) {
+DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *Dump_Info, char *string) {
     assert(Variable_Array);
     assert(root);
     assert(out);
@@ -71,7 +75,7 @@ DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpIn
     while (!flag_end) {
         DiffModes ans = PrintMenuAndAskMode();
 
-        err = DivideChoice(ans, root, Variable_Array, out, Dump_Info, &flag_end, &forest);
+        err = DivideChoice(ans, root, Variable_Array, out, Dump_Info, &flag_end, &forest, string);
         if (err != kSuccess) return err;
     }
 
@@ -95,7 +99,7 @@ static DiffModes PrintMenuAndAskMode(void) {
 }
 
 static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variable_Array,
-    FILE *out, DumpInfo *DumpInfo, bool *flag_end, Forest *forest) {
+    FILE *out, DumpInfo *DumpInfo, bool *flag_end, Forest *forest, char *string) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
@@ -103,13 +107,15 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
     assert(DumpInfo);
     assert(flag_end);
 
+    char main_var[MAX_TEXT_SIZE] = {};
+
     switch (ans) {
         case kAll:
-            return DoAllOptions(root, Variable_Array, out, DumpInfo, ans, forest);
+            return DoAllOptions(root, Variable_Array, out, DumpInfo, ans, forest, string);
 
         case kDerivativeInPos:
         case kDerivative:
-            return DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest);
+            return DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest, main_var);
             
         case kCount:
             return DoCountCase(root, Variable_Array, out);
@@ -132,21 +138,23 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
 }
 
 static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array, 
-        FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest) {
+        FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest, char *string) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
     assert(out);
     assert(DumpInfo);
 
+    char main_var[MAX_TEXT_SIZE] = {};
     ans = kDerivative;
-    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest);
+    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest, main_var);
     ans = kDerivativeInPos;
-    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest);
+    DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest, main_var);
     DoCountCase(root, Variable_Array, out);
     double pos_taylor = 0;
     DoTaylor(forest, root, DumpInfo, out, Variable_Array, &pos_taylor);
-    DoGnuplot(root, Variable_Array, forest, out, pos_taylor);
+    BuildTangent(forest, root, &forest->trees[1], pos_taylor, main_var, Variable_Array);
+    DoGnuplot(root, Variable_Array, forest, out, string);
 
     printf(GREEN "Скорее смотрите ДАМП и ТЕХ!!!\n" RESET);
 
@@ -154,30 +162,29 @@ static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array,
 
 }
 static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array, 
-        FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest) {
+        FILE *out, DumpInfo *DumpInfo, DiffModes ans, Forest *forest, char *main_var) {
     assert(ans);
     assert(root);
     assert(Variable_Array);
     assert(out);
     assert(DumpInfo);
 
-    char var[MAX_TEXT_SIZE] = {};
     size_t amount_of_dif = 0;
-    ReadDerivativeParameters(var, &amount_of_dif);
+    ReadDerivativeParameters(main_var, &amount_of_dif);
 
     ResizeForest(forest, amount_of_dif + 1);
     
     DifRoot root_last = {};
     DifRootCtor(&root_last);
 
-    DifErrors err = DoNDif(forest, root, &root_last, amount_of_dif, out, DumpInfo, var, Variable_Array);
+    DifErrors err = DoNDif(forest, root, &root_last, amount_of_dif, out, DumpInfo, main_var, Variable_Array);
     if (err != kSuccess) {
         ForestDtor(forest);
         return err;
     }
 
     if (ans == kDerivativeInPos) {
-        DoDerivativeInPos(&root_last, Variable_Array, DumpInfo, out, amount_of_dif, var, forest);
+        DoDerivativeInPos(&root_last, Variable_Array, DumpInfo, out, amount_of_dif,main_var, forest);
     }
     return kSuccess;
 }
@@ -248,7 +255,7 @@ static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpI
     DoDump(DumpInfo);
 }
 
-static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, double pos_taylor) {
+static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, char *string) {
     assert(root_written);
     assert(Variable_Array);
     assert(forest);
@@ -260,16 +267,19 @@ static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, 
     }
     const char *main_var = Variable_Array->var_array[0].variable_name;
 
-    PrintGnuplot("gnuplot1.txt", root_written, main_var);
-    PrintGnuplot("gnuplot2.txt", &forest->trees[1], main_var);
-    PrintGnuplotInPos("gnuplot3.txt", &forest->trees[forest->size - 1], main_var, pos_taylor);
+    Positions positions = ReadPositions(string);
 
-    DoSystemForGnuplot(main_var, pos_taylor);
+    PrintGnuplot("gnuplot1.txt", root_written, main_var, positions.x_left_1, positions.x_right_1);
+    PrintGnuplot("gnuplot2.txt", &forest->trees[1], main_var, positions.x_left_2, positions.x_right_2);
+    PrintGnuplotInPos("gnuplot3.txt", &forest->trees[forest->size - 2], main_var, positions.x_left_3, positions.x_right_3);
+    PrintGnuplotInPos("gnuplot4.txt", &forest->trees[forest->size - 1], main_var, positions.x_left_3, positions.x_right_3);
+
+    DoSystemForGnuplot(main_var, &positions);
     
     UploadGraph(out);
     PrintColoredNaming(out, root_written->root, "red", "Красный");
     PrintColoredNaming(out, forest->trees[1].root, "green", "Зеленый");
-    PrintColoredNaming(out, forest->trees[forest->size - 1].root, "blue", "Голубой");
+    PrintColoredNaming(out, forest->trees[forest->size - 2].root, "blue", "Голубой");
     
     return kSuccess;
 }
@@ -286,7 +296,7 @@ static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *o
     return kSuccess;
 }
 
-static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double pos) {
+static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double border_1, double border_2) {
     assert(filename);
     assert(root);
     assert(main_var);
@@ -303,7 +313,8 @@ static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const ch
     }
     double copied_value = node_var->value.variable->variable_value;
 
-    for (double i = pos - 0.01; i < pos + 0.01; i += 0.001) {
+
+    for (double i = border_1; i < border_2; i += 0.001) {
         node_var->value.variable->variable_value = i;
         fprintf(out, "%f ", i);
         fprintf(out, "%f\n", SolveEquation(root)); //
@@ -313,19 +324,21 @@ static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const ch
 
     return kSuccess;
 }
-static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var) {
+
+static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var, double border1, double border2) {
     assert(filename);
     assert(root);
     assert(main_var);
 
     FILE_OPEN_AND_CHECK(gnuplotfile, filename, "w");
-    PrintExpressionResultToFile(gnuplotfile, root, main_var);
+
+    PrintExpressionResultToFile(gnuplotfile, root, main_var, border1, border2);
     fclose(gnuplotfile);
 
     return kSuccess;
 }
 
-void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var) {
+void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var, double border1, double border2) {
     assert(out);
     assert(root);
     assert(main_var);
@@ -340,7 +353,7 @@ void PrintExpressionResultToFile(FILE *out, DifRoot *root, const char *main_var)
     }
     double copied_value = node_var->value.variable->variable_value;
 
-    for (double i = -3.0; i < 3.0; i += 0.0001) {
+    for (double i = border1; i < border2; i += 0.0001) {
         node_var->value.variable->variable_value = i;
         fprintf(out, "%f ", i);
         fprintf(out, "%f\n", SolveEquation(root));
@@ -436,15 +449,7 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
     return taylor_root;
 }
 
-#undef NEWN_
-#undef NEWV_
-#undef ADD_
-#undef SUB_
-#undef DIV_
-#undef MUL_
-#undef POW_
-
-static void DoSystemForGnuplot(const char *main_var, double pos) {
+static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
     assert(main_var);
 
     char command1[10000] = {};
@@ -455,11 +460,13 @@ static void DoSystemForGnuplot(const char *main_var, double pos) {
         "set grid;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
+        "set xrange[%lf:%lf];"
+        "set yrange[%lf:%lf];"
         "set title 'Function';"
         "plot "
         "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'Function'; "
         "\"",
-        main_var
+        main_var, positions->x_left_1, positions->x_right_1, positions->y_bottom_1, positions->y_top_1
     );
 
     char command2[10000] = {};
@@ -470,11 +477,13 @@ static void DoSystemForGnuplot(const char *main_var, double pos) {
         "set grid;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
+        "set xrange[%lf:%lf];"
+        "set yrange[%lf:%lf];"
         "set title 'First Derivative';"
         "plot "
         "'gnuplot2.txt' using 1:2 with linespoints lc rgb 'green' lw 2 pt 9 ps 0.5 title '';"
         "\"",
-        main_var
+        main_var, positions->x_left_2, positions->x_right_2, positions->y_bottom_2, positions->y_top_2
     );
 
     char command3[10000] = {};
@@ -487,13 +496,16 @@ static void DoSystemForGnuplot(const char *main_var, double pos) {
         "set xlabel '%s';"
         "set ylabel 'Y';"
         "set xrange[%lf:%lf];"
+        "set yrange[%lf:%lf];"
         "set title 'Taylor comparison';"
         "plot "
         "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'function', "
-        "'gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial';"
+        "'gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial',"
+        "'gnuplot4.txt' using 1:2 with linespoints lc rgb 'orange' lw 2 pt 7 ps 0.5 title 'tangent';"
         "\"",
-        main_var, pos - 0.01, pos + 0.01
+        main_var, positions->x_left_3, positions->x_right_3, positions->y_bottom_3, positions->y_top_3
     );
+    
 
     int result1 = system(command1);
     int result2 = system(command2);
@@ -509,6 +521,26 @@ static void DoSystemForGnuplot(const char *main_var, double pos) {
         fprintf(stderr, "Failed to run gnuplot command 3.\n");
     }
 }
+
+static DifNode_t *BuildTangent(Forest *forest, DifRoot *root, DifRoot *derivative, double pos, const char *main_var, VariableArr *Variable_Array) {
+    assert(root);
+
+    double derivative_ans = SolveEquation(derivative);
+
+    ResizeForest(forest, forest->size + 1);
+    DifNode_t *new_node = ADD_(MUL_(NEWN(derivative_ans), SUB_(NEWV(main_var), NEWN(pos))), NEWN(SolveEquation(root)));
+
+    forest->trees[forest->size - 1].root = new_node;
+    return new_node;
+}
+
+#undef NEWN_
+#undef NEWV_
+#undef ADD_
+#undef SUB_
+#undef DIV_
+#undef MUL_
+#undef POW_
 
 static FILE *SelectInputFile(void) {
     printf(MAGENTA "Вы хотите ввести выражение из консоли или из файла?\n"
@@ -541,36 +573,27 @@ static const char *AskFilename(void) {
     return filename_out;
 }
 
-// static void PrintTreeSimple(DifNode_t *node, char **buffer) {
-//     if (!node) {
-//         return;
-//     }
-//     // assert(node);
-//     assert(buffer);
-//     size_t buf_size = MAX_TEXT_SIZE;
+static Positions ReadPositions(char *string) {
+    assert(string);
 
-//     switch (node->type) {
-//         case kNumber:
-//             snprintf(*buffer + strlen(*buffer), buf_size - strlen(*buffer), "%g", node->value.number);
-//             break;
-//         case kVariable:
-//             snprintf(*buffer + strlen(*buffer), buf_size - strlen(*buffer), "%s", node->value.variable->variable_name);
-//             break;
-//         default:
-//             snprintf(*buffer + strlen(*buffer), buf_size - strlen(*buffer), "(");
-//             PrintTreeSimple(node->left, buffer);
+    Positions positions = {};
 
-//             switch (node->value.operation) {
-//                 case kOperationAdd: strcat(*buffer, " + "); break;
-//                 case kOperationSub: strcat(*buffer, " - "); break;
-//                 case kOperationMul: strcat(*buffer, " * "); break;
-//                 case kOperationDiv: strcat(*buffer, " / "); break;
-//                 case kOperationPow: strcat(*buffer, " ^ "); break;
-//                 default: break;
-//             }
+    ScanfTwoPositions(&positions.x_left_1, &positions.x_right_1, &string);
+    ScanfTwoPositions(&positions.y_bottom_1, &positions.y_top_1, &string);
+    ScanfTwoPositions(&positions.x_left_2, &positions.x_right_2, &string);
+    ScanfTwoPositions(&positions.y_bottom_2, &positions.y_top_2, &string);
+    ScanfTwoPositions(&positions.x_left_3, &positions.x_right_3, &string);
+    ScanfTwoPositions(&positions.y_bottom_3, &positions.y_top_3, &string);
 
-//             PrintTreeSimple(node->right, buffer);
-//             strcat(*buffer, ")");
-//             break;
-//     }
-// }
+    return positions;
+}
+
+static void ScanfTwoPositions(double *pos1, double *pos2, char **string) {
+    assert(pos1);
+    assert(pos2);
+    assert(string);
+
+    int cnt = 0;
+    sscanf(*string, "%lf %lf%n", pos1, pos2, &cnt);
+    (*string) += cnt;
+}

@@ -75,4 +75,26 @@ struct Forest {
     DifRoot *trees;
 };
 
+struct Positions {
+    double x_left_1;
+    double x_right_1;
+    double y_bottom_1;
+    double y_top_1;
+
+    double x_left_2;
+    double x_right_2;
+    double y_bottom_2;
+    double y_top_2;
+
+    double x_left_3;
+    double x_right_3;
+    double y_bottom_3;
+    double y_top_3;
+
+    double x1;
+    double y1;
+    double x2;
+    double y2;
+};
+
 #endif //STRUCTS_H_

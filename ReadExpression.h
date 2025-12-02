@@ -26,6 +26,6 @@
 
 DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *node, Dif_t buffer, DifNode_t **node_to_add, VariableArr *arr, int *i);
 void ReadVariableValue(VariableArr *arr);
-DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile);
+DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile, char **new_string);
 
 #endif //READ_EXPRESSION_H_

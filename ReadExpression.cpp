@@ -66,7 +66,7 @@ void ReadVariableValue(VariableArr *arr) {
     }
 }
 
-DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile) {
+DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Array, const char *filename, FILE *texfile, char **string) {
     assert(root);
     assert(dump_info);
     assert(Variable_Array);
@@ -77,7 +77,7 @@ DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Ar
 
     FileInfo Info = {};
     DoBufRead(file, filename, &Info);
-    printf("%s", Info.buf_ptr);
+    //printf("%s", Info.buf_ptr);
 
     fclose(file);
 
@@ -87,7 +87,8 @@ DifErrors ReadInfix(DifRoot *root, DumpInfo *dump_info, VariableArr *Variable_Ar
     if (!root->root) {
         return kFailure;
     }
-    
+
+    *string = (char *)new_string;
     dump_info->tree = root;
 
     strcpy(dump_info->message, "Expression read with infix form");
