@@ -19,9 +19,9 @@
 
 #define INIT_DUMP_INFO(name)                                       \
     DumpInfo name = {};                                            \
-    dump_info.filename_to_write_dump = "alldump.html";             \
+    dump_info.filename_to_write_dump = "./data/alldump.html";      \
     dump_info.file = fopen(dump_info.filename_to_write_dump, "w"); \
-    dump_info.filename_to_write_graphviz = "output.txt";           \
+    dump_info.filename_to_write_graphviz = "./data/output.txt";    \
     strcpy(dump_info.message, "Expression tree");
 
 DifErrors ReadNodeFromFile(DifRoot *tree, FILE *file, FILE *logfile, size_t *pos, DifNode_t *node, Dif_t buffer, DifNode_t **node_to_add, VariableArr *arr, int *i);

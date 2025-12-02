@@ -7,7 +7,7 @@
 #include "Enums.h"
 #include "Structs.h"
 
-#define FILE_OUT "output.txt"
+#define FILE_OUT "./data/output.txt"
 #define MAX_COMMAND_SIZE 50
 
 static const char *PrintOperationType(const DifNode_t *node);

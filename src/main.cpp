@@ -14,7 +14,6 @@
 #define MAX_VARIABLE_SIZE 30
 
 int main(void) {
-    FILE_OPEN_AND_CHECK(file, "expression.txt", "r");
     DifRoot root = {};
     DifRootCtor(&root);
 
@@ -29,13 +28,12 @@ int main(void) {
     dump_info.tree = &root;
 
     char *string = NULL;
-    CHECK_ERROR_RETURN(ReadInfix(&root, &dump_info, &Variable_Array, "input.txt", out, &string));
+    CHECK_ERROR_RETURN(ReadInfix(&root, &dump_info, &Variable_Array, "./data/input.txt", out, &string));
     printf("%s", string);
 
     CHECK_ERROR_RETURN(DiffPlay(&Variable_Array, &root, out, &dump_info, string));
     EndTex(out);
     fclose(out);
-    fclose(file);
 
     DtorVariableArray(&Variable_Array);
     return kSuccess;

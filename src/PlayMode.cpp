@@ -269,10 +269,10 @@ static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, 
 
     Positions positions = ReadPositions(string);
 
-    PrintGnuplot("gnuplot1.txt", root_written, main_var, positions.x_left_1, positions.x_right_1);
-    PrintGnuplot("gnuplot2.txt", &forest->trees[1], main_var, positions.x_left_2, positions.x_right_2);
-    PrintGnuplotInPos("gnuplot3.txt", &forest->trees[forest->size - 2], main_var, positions.x_left_3, positions.x_right_3);
-    PrintGnuplotInPos("gnuplot4.txt", &forest->trees[forest->size - 1], main_var, positions.x_left_3, positions.x_right_3);
+    PrintGnuplot("./data/gnuplot1.txt", root_written, main_var, positions.x_left_1, positions.x_right_1);
+    PrintGnuplot("./data/gnuplot2.txt", &forest->trees[1], main_var, positions.x_left_2, positions.x_right_2);
+    PrintGnuplotInPos("./data/gnuplot3.txt", &forest->trees[forest->size - 2], main_var, positions.x_left_3, positions.x_right_3);
+    PrintGnuplotInPos("./data/gnuplot4.txt", &forest->trees[forest->size - 1], main_var, positions.x_left_3, positions.x_right_3);
 
     DoSystemForGnuplot(main_var, &positions);
     
@@ -440,7 +440,7 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
         double ans = SolveEquation(root);
         ans /= Factorial(i);
 
-        DifNode_t *term = MUL_(NEWN(ans), POW_(SUB_(NEWV(main_var), NEWN(num_pos)), NEWN(i)));
+        DifNode_t *term = MUL_(NEWN(ans), POW_(SUB_(NEWV(main_var), NEWN(num_pos)), NEWN((double)i)));
 
         result = ADD_(result, term);
     }
@@ -456,7 +456,7 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
     snprintf(command1, sizeof(command1),
         "gnuplot -e \""
         "set terminal pngcairo size 1200,600;"
-        "set output 'plot1.png';"
+        "set output './data/plot1.png';"
         "set grid;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
@@ -464,7 +464,7 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
         "set yrange[%lf:%lf];"
         "set title 'Function';"
         "plot "
-        "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'Function'; "
+        "'./data/gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'Function'; "
         "\"",
         main_var, positions->x_left_1, positions->x_right_1, positions->y_bottom_1, positions->y_top_1
     );
@@ -473,7 +473,7 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
     snprintf(command2, sizeof(command2),
         "gnuplot -e \""
         "set terminal pngcairo size 1200,600;"
-        "set output 'plot2.png';"
+        "set output './data/plot2.png';"
         "set grid;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
@@ -481,7 +481,7 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
         "set yrange[%lf:%lf];"
         "set title 'First Derivative';"
         "plot "
-        "'gnuplot2.txt' using 1:2 with linespoints lc rgb 'green' lw 2 pt 9 ps 0.5 title '';"
+        "'./data/gnuplot2.txt' using 1:2 with linespoints lc rgb 'green' lw 2 pt 9 ps 0.5 title '';"
         "\"",
         main_var, positions->x_left_2, positions->x_right_2, positions->y_bottom_2, positions->y_top_2
     );
@@ -490,7 +490,7 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
     snprintf(command3, sizeof(command3),
         "gnuplot -e \""
         "set terminal pngcairo size 1200,600;"
-        "set output 'plot_taylor.png';"
+        "set output './data/plot_taylor.png';"
         "set grid;"
         "set size ratio 1/10;"
         "set xlabel '%s';"
@@ -499,9 +499,9 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
         "set yrange[%lf:%lf];"
         "set title 'Taylor comparison';"
         "plot "
-        "'gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'function', "
-        "'gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial',"
-        "'gnuplot4.txt' using 1:2 with linespoints lc rgb 'orange' lw 2 pt 7 ps 0.5 title 'tangent';"
+        "'./data/gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'function', "
+        "'./data/gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial',"
+        "'./data/gnuplot4.txt' using 1:2 with linespoints lc rgb 'orange' lw 2 pt 7 ps 0.5 title 'tangent';"
         "\"",
         main_var, positions->x_left_3, positions->x_right_3, positions->y_bottom_3, positions->y_top_3
     );

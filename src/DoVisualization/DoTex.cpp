@@ -66,7 +66,7 @@ void BeginTex(FILE *out) {
     fprintf(out, "\\begin{document}\n");
 
     fprintf(out, "\\maketitle\n");
-    fprintf(out, "\\centering\\includegraphics[width=0.8\\textwidth]{bibki.jpg}\n\\clearpage");
+    fprintf(out, "\\centering\\includegraphics[width=0.8\\textwidth]{./data/bibki.jpg}\n\\clearpage");
     fprintf(out, "\n\n\\tableofcontents\n\\clearpage\n");
     fprintf(out, "\\textbf{Дифференцирование - задача непростая, поэтому этот TEX окажется крайне полезным.}\n\n\\vspace{1em}");
 }
@@ -74,7 +74,7 @@ void BeginTex(FILE *out) {
 void EndTex(FILE *out) {
     fprintf(out, "\\clearpage\n");
     fprintf(out, "\n\n\\textbf{Теперь страшное слово под названием ДИФФЕРЕНЦИРОВАНИЕ пугает не так сильно}.\n\n \\textbf{Смелее закрывайте этот ТЕХ, и будет вам счастье!!}\n");
-    fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{help.jpg}\n");
+    fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{./data/help.jpg}\n");
     fprintf(out, "\n\\end{document}");
 
 }
@@ -87,7 +87,7 @@ void PrintFirstExpression(FILE *out, DifNode_t *node) {
     DoTexInner(node, out);
     fprintf(out, "}\n\\end{dmath*}");
 
-    fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{happy_Lukashov.jpg}\n\\clearpage\n");
+    fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{./data/happy_Lukashov.jpg}\n\\clearpage\n");
 }
 
 void DoTex(DifNode_t *node, const char *value, FILE *out) {
@@ -129,9 +129,9 @@ void UploadGraph(FILE *out) {
     assert(out);
 
     fprintf(out, "\n\\clearpage\\section{Чудесные графики чудесных функций!}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{plot1.png}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{plot2.png}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{plot_taylor.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{./data/plot1.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{./data/plot2.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{./data/plot_taylor.png}\n");
 }
 
 void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr) {
