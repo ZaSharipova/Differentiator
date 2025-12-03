@@ -9,7 +9,7 @@ DifErrors NodeCtor(DifNode_t **node, Value *value);
 DifErrors DifRootCtor(DifRoot *root);
 
 DifErrors TreeDtor(DifRoot *tree);
-DifErrors DeleteNode(DifNode_t *node);
+DifErrors DeleteNode(DifRoot *root, DifNode_t *node);
 
 DifErrors InitArrOfVariable(VariableArr *arr, size_t capacity);
 DifErrors ResizeArray(VariableArr *arr);

@@ -4,8 +4,8 @@
 #include <stdio.h>
 
 #include "Enums.h"
-#define MAX_IMAGE_SIZE 60
-#define MAX_TEXT_SIZE 120
+#define MAX_IMAGE_SIZE 256
+#define MAX_TEXT_SIZE 300
 
 typedef char* Dif_t;
 
@@ -48,6 +48,7 @@ typedef struct DumpInfo {
     char *name;
     char *question;
     char image_file[MAX_TEXT_SIZE];
+    char image_html_file[MAX_TEXT_SIZE];
     size_t graph_counter;
     bool flag_new;
 
@@ -90,11 +91,6 @@ struct Positions {
     double x_right_3;
     double y_bottom_3;
     double y_top_3;
-
-    double x1;
-    double y1;
-    double x2;
-    double y2;
 };
 
 #endif //STRUCTS_H_

@@ -16,5 +16,6 @@ void PrintTaylor(DifNode_t *node, const char *main_var, double number, size_t nu
 void PrintFirstExpression(FILE *out, DifNode_t *node);
 void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answer, FILE *out, VariableArr *Variable_Array);
 void PrintColoredNaming(FILE *out, DifNode_t *node, const char *color, const char *color_rus);
+void PrintAllResults(Forest *forest, FILE *out, double taylor_pos, const char *main_var);
 
 #endif //DO_TEX_H_
