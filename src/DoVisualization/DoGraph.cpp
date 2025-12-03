@@ -90,7 +90,8 @@ static void PrintDotNode(FILE *file, const DifNode_t *node, const DifNode_t *nod
 static void DoSnprintf(DumpInfo *Info) {
     assert(Info);
 
-    snprintf(Info->image_file, sizeof(Info->image_file), "Images/graph_%zu.svg", Info->graph_counter);
+    snprintf(Info->image_file, sizeof(Info->image_file), "./data/Images/graph_%zu.svg", Info->graph_counter);
+    snprintf(Info->image_html_file, sizeof(Info->image_html_file), "Images/graph_%zu.svg", Info->graph_counter);
     Info->graph_counter ++;
     char cmd[MAX_COMMAND_SIZE] = {};
     snprintf(cmd, sizeof(cmd), "dot " FILE_OUT " -T svg -o %s", Info->image_file);

@@ -19,8 +19,15 @@ OBJ = $(SOURCES:src/%.cpp=build/%.o)
 TARGET = build/solver
 
 debug: $(TARGET)
-	@$(CXX) $(CFLAGS) $(SOURCES) -o $(TARGET)
+
+$(TARGET): $(OBJ)
+	mkdir -p build
+	$(CXX) $(CFLAGS) $(OBJ) -o $(TARGET)
+
+build/%.o: src/%.cpp
+	mkdir -p $(dir $@)
+	@$(CXX) $(CFLAGS) -c $< -o $@
 
 clean:
-	@rm -rf build/zarinasharipova@MacBook-Pro-Zarina Differenciator %
+	@rm -rf build
 make: *** No rule to make target `build/solver', needed by `debug'.  Stop.

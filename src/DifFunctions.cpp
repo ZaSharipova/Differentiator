@@ -51,23 +51,24 @@ DifErrors DifRootCtor(DifRoot *root) {
     return kSuccess;
 }
 
-DifErrors DeleteNode(DifNode_t *node) {
+DifErrors DeleteNode(DifRoot *root, DifNode_t *node) {
     if (!node)
         return kSuccess;
 
     if (node->left) {
-        DeleteNode(node->left);
+        DeleteNode(root, node->left);
         node->left = NULL;
     }
 
     if (node->right) {
-        DeleteNode(node->right);
+        DeleteNode(root, node->right);
         node->right = NULL;
     }
 
     node->parent = NULL;
 
     free(node);
+    root->size--;
 
     return kSuccess;
 }
@@ -75,7 +76,7 @@ DifErrors DeleteNode(DifNode_t *node) {
 DifErrors TreeDtor(DifRoot *tree) {
     assert(tree);
 
-    DeleteNode(tree->root);
+    DeleteNode(tree, tree->root);
 
     tree->root =  NULL;
     tree->size = 0;

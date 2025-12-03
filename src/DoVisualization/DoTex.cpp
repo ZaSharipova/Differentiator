@@ -129,9 +129,9 @@ void UploadGraph(FILE *out) {
     assert(out);
 
     fprintf(out, "\n\\clearpage\\section{Чудесные графики чудесных функций!}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{./data/plot1.png}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{./data/plot2.png}\n");
-    fprintf(out, "\n\n\\includegraphics[width=0.8\\textwidth]{./data/plot_taylor.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=1\\textwidth]{./data/plot1.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=1\\textwidth]{./data/plot2.png}\n");
+    fprintf(out, "\n\n\\includegraphics[width=1\\textwidth]{./data/plot_taylor.png}\n");
 }
 
 void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *VariableArr) {
@@ -179,6 +179,24 @@ void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answe
     fprintf(out, "\n\n\\begin{dmath*}\n");
     DoTexInner(node, out);
     fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
+}
+
+void PrintAllResults(Forest *forest, FILE *out, double taylor_pos, const char *main_var) {
+    assert(forest);
+    assert(out);
+
+    fprintf(out, "\n\\clearpage\\section{Итоговые ответы:}\n\n");
+
+    fprintf(out, "\nБыло введено такое выражение:\n\n\\begin{math}\n");
+    DoTexInner(forest->trees[0].root, out);
+    fprintf(out, "\n\\end{math}");
+    for (size_t i = 1; i < forest->size - 1; i++) {
+        fprintf(out, "\n\n\\vspace{1em}\\text{%zu производная:\n}\\begin{math}\n", i);
+        DoTexInner(forest->trees[i].root, out);
+        fprintf(out, "\n\\end{math}");
+    }
+    fprintf(out, "\n\n\\vspace{1em}\\text{Многочлен Тейлора в точке %lf}:\n\n\n", taylor_pos);
+    PrintTaylor(forest->trees[forest->size - 1].root, main_var, taylor_pos, 3, out);
 }
 
 void DoTexInner(DifNode_t *node, FILE *out) {

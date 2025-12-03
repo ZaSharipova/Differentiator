@@ -27,7 +27,7 @@
 #define MAGENTA "\033[1;35m"
 #define CYAN    "\033[1;36m"
 
-static FILE *SelectInputFile(void);
+#define MAX_COMMAND_SIZE 10000
 
 static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root2, size_t ans, FILE *out, DumpInfo *DumpInfo, const char *main_var, VariableArr *Variable_Array);
 static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpInfo *DumpInfo, FILE *out, size_t amount_of_dif, const char *main_var, Forest *forest);
@@ -57,7 +57,8 @@ static DifNode_t *BuildTangent(Forest *forest, DifRoot *root, DifRoot *derivativ
 static Positions ReadPositions(char *string);
 static void ScanfTwoPositions(double *pos1, double *pos2, char **string);
 
-static const char *AskFilename(void);
+static size_t ReadTaylorParams(char *main_var, double *number,
+    VariableArr *Variable_Array, double *position_taylor);
 
 DifErrors DiffPlay(VariableArr *Variable_Array, DifRoot *root, FILE *out, DumpInfo *Dump_Info, char *string) {
     assert(Variable_Array);
@@ -151,10 +152,13 @@ static DifErrors DoAllOptions(DifRoot *root, VariableArr *Variable_Array,
     ans = kDerivativeInPos;
     DoDerivativeCases(root, Variable_Array, out, DumpInfo, ans, forest, main_var);
     DoCountCase(root, Variable_Array, out);
+
     double pos_taylor = 0;
     DoTaylor(forest, root, DumpInfo, out, Variable_Array, &pos_taylor);
     BuildTangent(forest, root, &forest->trees[1], pos_taylor, main_var, Variable_Array);
     DoGnuplot(root, Variable_Array, forest, out, string);
+
+    PrintAllResults(forest, out, pos_taylor, main_var);
 
     printf(GREEN "Скорее смотрите ДАМП и ТЕХ!!!\n" RESET);
 
@@ -271,8 +275,8 @@ static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, 
 
     PrintGnuplot("./data/gnuplot1.txt", root_written, main_var, positions.x_left_1, positions.x_right_1);
     PrintGnuplot("./data/gnuplot2.txt", &forest->trees[1], main_var, positions.x_left_2, positions.x_right_2);
-    PrintGnuplotInPos("./data/gnuplot3.txt", &forest->trees[forest->size - 2], main_var, positions.x_left_3, positions.x_right_3);
-    PrintGnuplotInPos("./data/gnuplot4.txt", &forest->trees[forest->size - 1], main_var, positions.x_left_3, positions.x_right_3);
+    PrintGnuplot("./data/gnuplot3.txt", &forest->trees[forest->size - 2], main_var, positions.x_left_3, positions.x_right_3);
+    PrintGnuplot("./data/gnuplot4.txt", &forest->trees[forest->size - 1], main_var, positions.x_left_3, positions.x_right_3);
 
     DoSystemForGnuplot(main_var, &positions);
     
@@ -296,34 +300,34 @@ static DifErrors DoCountCase(DifRoot *root, VariableArr *Variable_Array, FILE *o
     return kSuccess;
 }
 
-static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double border_1, double border_2) {
-    assert(filename);
-    assert(root);
-    assert(main_var);
+// static DifErrors PrintGnuplotInPos(const char *filename, DifRoot *root, const char *main_var, double border_1, double border_2) {
+//     assert(filename);
+//     assert(root);
+//     assert(main_var);
 
-    FILE_OPEN_AND_CHECK(out, filename, "w");
+//     FILE_OPEN_AND_CHECK(out, filename, "w");
 
-    DifNode_t *node = root->root;
+//     DifNode_t *node = root->root;
 
-    DifNode_t *node_var = NULL;
-    FindMainVar(node, main_var, &node_var);
-    if (!node_var) {
-        fprintf(stderr, "Error: variable '%s' not found in expression tree!\n", main_var);
-        return kFailure;
-    }
-    double copied_value = node_var->value.variable->variable_value;
+//     DifNode_t *node_var = NULL;
+//     FindMainVar(node, main_var, &node_var);
+//     if (!node_var) {
+//         fprintf(stderr, "Error: variable '%s' not found in expression tree!\n", main_var);
+//         return kFailure;
+//     }
+//     double copied_value = node_var->value.variable->variable_value;
 
 
-    for (double i = border_1; i < border_2; i += 0.001) {
-        node_var->value.variable->variable_value = i;
-        fprintf(out, "%f ", i);
-        fprintf(out, "%f\n", SolveEquation(root)); //
-    }
-    node_var->value.variable->variable_value = copied_value;
-    fclose(out);
+//     for (double i = border_1; i < border_2; i += 0.001) {
+//         node_var->value.variable->variable_value = i;
+//         fprintf(out, "%f ", i);
+//         fprintf(out, "%f\n", SolveEquation(root)); //
+//     }
+//     node_var->value.variable->variable_value = copied_value;
+//     fclose(out);
 
-    return kSuccess;
-}
+//     return kSuccess;
+// }
 
 static DifErrors PrintGnuplot(const char *filename, DifRoot *root, const char *main_var, double border1, double border2) {
     assert(filename);
@@ -369,23 +373,12 @@ static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FIL
     assert(position_taylor);
 
     char main_var[MAX_TEXT_SIZE] = {};
-    printf(BLUE "По какой переменной хотите разложить по Тейлору:\n" RESET);
-    scanf("%s", main_var);
-    printf(BLUE "В окрестности какой точки хотите разложить:\n" RESET);
     double number = 0;
-    scanf("%lf", &number);
-    for (size_t i = 0; i < Variable_Array->size; i++) {
-        if (strcmp(main_var, Variable_Array->var_array->variable_name) == 0) {
-            Variable_Array->var_array->variable_value = number;
-        }
-    }
-    *position_taylor = number;
-    size_t num_pos = 0;
-    printf(BLUE "Для какой производной вы хотите посчитать:\n" RESET);
-    scanf("%zu", &num_pos);
+    size_t num_pos = ReadTaylorParams(main_var, &number, Variable_Array, position_taylor);
 
     DifRoot root_last = {};
     fprintf(out, "\\clearpage\n\\section{Разложим по формуле Тейлора в окрестности точки %lf}\n\n\\noindent\n", *position_taylor);
+    assert(DumpInfo);
     DoNDif(forest, root, &root_last, num_pos, out, DumpInfo, main_var, Variable_Array);
     DifRoot *new_root = CountTaylor(forest, main_var, num_pos, number, Variable_Array);
     new_root->root = OptimiseTree(new_root, new_root->root, out, main_var);
@@ -452,10 +445,10 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
 static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
     assert(main_var);
 
-    char command1[10000] = {};
+    char command1[MAX_COMMAND_SIZE] = {};
     snprintf(command1, sizeof(command1),
         "gnuplot -e \""
-        "set terminal pngcairo size 1200,600;"
+        "set terminal pngcairo size 1800,800;"
         "set output './data/plot1.png';"
         "set grid;"
         "set xlabel '%s';"
@@ -469,10 +462,10 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
         main_var, positions->x_left_1, positions->x_right_1, positions->y_bottom_1, positions->y_top_1
     );
 
-    char command2[10000] = {};
+    char command2[MAX_COMMAND_SIZE] = {};
     snprintf(command2, sizeof(command2),
         "gnuplot -e \""
-        "set terminal pngcairo size 1200,600;"
+        "set terminal pngcairo size 1800,800;"
         "set output './data/plot2.png';"
         "set grid;"
         "set xlabel '%s';"
@@ -486,13 +479,13 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
         main_var, positions->x_left_2, positions->x_right_2, positions->y_bottom_2, positions->y_top_2
     );
 
-    char command3[10000] = {};
+    char command3[MAX_COMMAND_SIZE] = {};
     snprintf(command3, sizeof(command3),
         "gnuplot -e \""
-        "set terminal pngcairo size 1200,600;"
+        "set terminal pngcairo size 1800,800;"
         "set output './data/plot_taylor.png';"
         "set grid;"
-        "set size ratio 1/10;"
+        "set size ratio 0.3;"
         "set xlabel '%s';"
         "set ylabel 'Y';"
         "set xrange[%lf:%lf];"
@@ -505,7 +498,6 @@ static void DoSystemForGnuplot(const char *main_var, Positions *positions) {
         "\"",
         main_var, positions->x_left_3, positions->x_right_3, positions->y_bottom_3, positions->y_top_3
     );
-    
 
     int result1 = system(command1);
     int result2 = system(command2);
@@ -542,36 +534,34 @@ static DifNode_t *BuildTangent(Forest *forest, DifRoot *root, DifRoot *derivativ
 #undef MUL_
 #undef POW_
 
-static FILE *SelectInputFile(void) {
-    printf(MAGENTA "Вы хотите ввести выражение из консоли или из файла?\n"
-           "1. Консоль,\n"
-           "2. Файл:\n" RESET);
+static size_t ReadTaylorParams(char *main_var, double *number,
+    VariableArr *Variable_Array, double *position_taylor) {
+    assert(main_var);
+    assert(number);
+    assert(Variable_Array);
+    assert(position_taylor);
 
-    int ans = 0;
-    scanf("%d", &ans);
+    printf(BLUE "По какой переменной хотите разложить по Тейлору:\n" RESET);
+    scanf("%s", main_var);
 
-    if (ans == 1) {
-        return stdin;
+    printf(BLUE "В окрестности какой точки хотите разложить:\n" RESET);
+    scanf("%lf", number);
+
+    for (size_t i = 0; i < Variable_Array->size; i++) {
+        if (strcmp(main_var, Variable_Array->var_array[i].variable_name) == 0) {
+            Variable_Array->var_array[i].variable_value = *number;
+        }
     }
 
-    if (ans == 2) {
-        const char *filename = AskFilename();
-        FILE *file = fopen(filename, "r");
-        return file;
-    }
+    *position_taylor = *number;
 
-    fprintf(stderr, "Кажется, вы ввели невалидную букву.\n");
-    return NULL;
+    size_t num_pos = 0;
+    printf(BLUE "Для какой производной вы хотите посчитать:\n" RESET);
+    scanf("%zu", &num_pos);
+
+    return num_pos;
 }
 
-static const char *AskFilename(void) {
-    printf(MAGENTA "Введите название файла, из которого нужно считать выражение:" RESET);
-    char filename[MAX_TEXT_SIZE] = {};
-    scanf("%s", filename);
-    const char *filename_out = filename;
-
-    return filename_out;
-}
 
 static Positions ReadPositions(char *string) {
     assert(string);

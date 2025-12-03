@@ -26,7 +26,7 @@ void DoDump(DumpInfo *Info) {
     PrintCurrentTime(file, "made");
     fprintf(file, "<h3 style=\"margin: 2px 0;\"> tree root address: %p</h3>", Info->tree->root);
     //fprintf(file, "<h3 style=\"margin: 2px 0;\"> tree size: %zu</h3>", Info->tree->size);
-    fprintf(file, "<img src = %s width=1500px>", Info->image_file);
+    fprintf(file, "<img src = \'%s\' width=1500px>", Info->image_html_file);
 
     fprintf(file, "<hr style=\"border: none; height: 2px; background-color: black;\">");
 }

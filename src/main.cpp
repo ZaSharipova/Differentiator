@@ -29,7 +29,6 @@ int main(void) {
 
     char *string = NULL;
     CHECK_ERROR_RETURN(ReadInfix(&root, &dump_info, &Variable_Array, "./data/input.txt", out, &string));
-    printf("%s", string);
 
     CHECK_ERROR_RETURN(DiffPlay(&Variable_Array, &root, out, &dump_info, string));
     EndTex(out);
