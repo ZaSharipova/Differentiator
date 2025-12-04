@@ -77,6 +77,17 @@ struct Forest {
 };
 
 struct Positions {
+    char main_var[MAX_TEXT_SIZE];
+    size_t simple_der_pos;
+
+    double der_in_pos;
+    double der_solve_pos;
+
+    double solve_pos;
+
+    double taylor_pos;
+    size_t taylor_der;
+
     double x_left_1;
     double x_right_1;
     double y_bottom_1;
