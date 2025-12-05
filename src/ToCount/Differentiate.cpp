@@ -180,6 +180,9 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
         case (kOperationLn):
             result = MUL_(DIV_(NEWN(1), CR), DR);
             break;
+        case (kOperationArcsin):
+            result = MUL_(DIV_(NEWN(1), POW_(SUB_(NEWN(1), POW_(CR, NEWN(2))), NEWN(0.5))), DR);
+            break;
         case (kOperationArctg):
             result = MUL_(DIV_(NEWN(1), ADD_(NEWN(1), POW_(CR, NEWN(2)))), DR);
             break;

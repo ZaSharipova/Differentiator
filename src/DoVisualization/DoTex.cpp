@@ -355,6 +355,13 @@ void DoTexInner(DifNode_t *node, FILE *out) {
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
+
+        case kOperationArcsin:
+            fprintf(out, "\\arcsin(");
+            cnt += 8;
+            DoTexInner(node->right, out);
+            fprintf(out, ")");
+            break;
             
         case kOperationSinh:
             fprintf(out, "\\sinh(");

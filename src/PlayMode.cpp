@@ -108,7 +108,7 @@ static DifErrors DivideChoice(DiffModes ans, DifRoot *root, VariableArr *Variabl
     assert(DumpInfo);
     assert(flag_end);
 
-    Positions positions = ReadPositions(string);
+    Positions positions = {};
     char *main_var = positions.main_var;
 
     switch (ans) {
@@ -180,7 +180,6 @@ static DifErrors DoDerivativeCases(DifRoot *root, VariableArr *Variable_Array,
     size_t amount_of_dif = positions->simple_der_pos;
     //ReadDerivativeParameters(main_var, &amount_of_dif);
 
-    ResizeForest(forest, amount_of_dif + 1);
     
     DifRoot root_last = {};
     DifRootCtor(&root_last);
@@ -216,6 +215,7 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
 
     DifNode_t *new_tree = NULL;
 
+    ResizeForest(forest, ans + 1);
     for (size_t i = 1; i <= ans; i++) {
         if (!forest->trees[i].root) {
             printf("%zu\n", i);
@@ -405,7 +405,7 @@ static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FIL
     ResizeForest(forest, forest->size + 1);
     forest->trees[forest->size - 1] = *new_root;
 
-   //DoTreeInGraphviz(new_root->root, DumpInfo, new_root->root);
+    DoTreeInGraphviz(new_root->root, DumpInfo, new_root->root);
     snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Taylor polinomial");
     DumpInfo->tree = new_root;
     //DoDump(DumpInfo);
@@ -447,6 +447,7 @@ static DifRoot *CountTaylor(Forest *forest, const char *main_var, size_t number,
     
 
     for (size_t i = 0; i <= number; i++) {
+        printf("%zu", i);
         root = &forest->trees[i];
 
         double ans = SolveEquation(root);

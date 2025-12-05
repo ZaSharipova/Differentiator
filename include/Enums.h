@@ -34,6 +34,7 @@ enum OperationTypes {
     kOperationTg,
     kOperationLn,
     kOperationArctg,
+    kOperationArcsin,
     kOperationSinh,
     kOperationCosh,
     kOperationTgh,

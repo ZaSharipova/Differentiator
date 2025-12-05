@@ -136,6 +136,8 @@ static GraphOperation PrintExpressionType(const DifNode_t *node) {
             return {"LOG", "cadetblue1"};
         case (kOperationArctg):
             return {"ARCTG", "lightgoldenrod"};
+        case (kOperationArcsin):
+            return {"ARCSIN", "lightgoldenrod"};
         case (kOperationSinh):
             return {"SH", "lemonchiffon"};
         case (kOperationCosh):

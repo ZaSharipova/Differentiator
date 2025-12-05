@@ -23,6 +23,7 @@ static OpEntry operations[] = {
     {"sin",   kOperationSin},
     {"cos",   kOperationCos},
     {"ln",    kOperationLn},
+    {"arcsin", kOperationArcsin},
     {"arctg", kOperationArctg},
     {"pow",   kOperationPow},
     {"sh",    kOperationSinh},
