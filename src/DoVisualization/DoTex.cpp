@@ -9,7 +9,7 @@
 #include "Structs.h"
 
 static bool IsNegativeNumber(DifNode_t *node);
-void printDouble(FILE *out, double x);
+int printDouble(FILE *out, double x);
 
 const char *TexPhrasesArray[] = {
     "Путём нетрудных преобразований",
@@ -83,9 +83,9 @@ void PrintFirstExpression(FILE *out, DifNode_t *node) {
     assert(out);
     assert(node);
 
-    fprintf(out, "\n\nБыло введено такое выражение: \\begin{dmath*}\n\\textcolor{red}{");
+    fprintf(out, "\n\nБыло введено такое выражение: \\begin{math}\n\\textcolor{red}{");
     DoTexInner(node, out);
-    fprintf(out, "}\n\\end{dmath*}");
+    fprintf(out, "}\n\\end{math}");
 
     fprintf(out, "\n\n\\vspace{1em}\n\\centering\\includegraphics[width=0.8\\textwidth]{./data/happy_Lukashov.jpg}\n\\clearpage\n");
 }
@@ -98,6 +98,7 @@ void DoTex(DifNode_t *node, const char *value, FILE *out) {
     fprintf(out, "\n\\vspace{1em}\n\\text{%s} \n", TexPhrasesArray[(pos_in_array += 1) % TEX_PHRASES_COUNT]);
     
     fprintf(out, "\n\\begin{math} \\frac{df}{d%s} = ", value);
+
     DoTexInner(node, out);
     fprintf(out, "\\end{math}\n\n");
 }
@@ -120,9 +121,9 @@ void PrintTaylor(DifNode_t *node, const char *main_var, double number, size_t nu
     assert(main_var);
     assert(out);
 
-    fprintf(out, "\\begin{dmath*} f(%s) = ", main_var);
+    fprintf(out, "\\begin{math} f(%s) = ", main_var);
     DoTexInner(node, out);
-    fprintf(out, "\\ + o((x - %.0lf)^%zu) \\end{dmath*}", number, num_pos);
+    fprintf(out, "\\ + o((x - %.0lf)^%zu) \\end{math}", number, num_pos);
 }
 
 void UploadGraph(FILE *out) {
@@ -147,9 +148,9 @@ void PrintSolution(DifNode_t *node, double answer, FILE *out, VariableArr *Varia
         fprintf(out, ", %s = %lf", VariableArr->var_array->variable_name, VariableArr->var_array->variable_value);
     }
     
-    fprintf(out, "\n\n\\begin{dmath*}\n");
+    fprintf(out, "\n\n\\begin{math}");
     DoTexInner(node, out);
-    fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
+    fprintf(out, " = %lf\n\\end{math}\n", answer);
 }
 
 void PrintColoredNaming(FILE *out, DifNode_t *node, const char *color, const char *color_rus) {
@@ -158,9 +159,9 @@ void PrintColoredNaming(FILE *out, DifNode_t *node, const char *color, const cha
     assert(color);
     assert(color_rus);
     
-    fprintf(out, "\n\\textcolor{%s}{%s:} \n\\begin{dmath*}", color, color_rus);
+    fprintf(out, "\n\\textcolor{%s}{%s:} \n\\begin{math}", color, color_rus);
     DoTexInner(node, out);
-    fprintf(out, "\\end{dmath*}\n\n");
+    fprintf(out, "\\end{math}\n\n");
 }
 
 void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answer, FILE *out, VariableArr *Variable_Array) {
@@ -176,9 +177,9 @@ void PrintSolutionForDerivative(DifNode_t *node, size_t num_of_der, double answe
         fprintf(out, ", %s = %lf", Variable_Array->var_array->variable_name, Variable_Array->var_array->variable_value);
     }
     
-    fprintf(out, "\n\n\\begin{dmath*}\n");
+    fprintf(out, "\n\n\\begin{math}");
     DoTexInner(node, out);
-    fprintf(out, " = %lf\n\\end{dmath*}\n", answer);
+    fprintf(out, " = %lf\n\\end{math}\n", answer);
 }
 
 void PrintAllResults(Forest *forest, FILE *out, double taylor_pos, const char *main_var) {
@@ -191,7 +192,7 @@ void PrintAllResults(Forest *forest, FILE *out, double taylor_pos, const char *m
     DoTexInner(forest->trees[0].root, out);
     fprintf(out, "\n\\end{math}");
     for (size_t i = 1; i < forest->size - 1; i++) {
-        fprintf(out, "\n\n\\vspace{1em}\\text{%zu производная:\n}\\begin{math}\n", i);
+        fprintf(out, "\n\n\\vspace{1em}\\text{%zu производная:}\n\\begin{math}", i);
         DoTexInner(forest->trees[i].root, out);
         fprintf(out, "\n\\end{math}");
     }
@@ -202,123 +203,184 @@ void PrintAllResults(Forest *forest, FILE *out, double taylor_pos, const char *m
 void DoTexInner(DifNode_t *node, FILE *out) {
     assert(node);
     assert(out);
-
+    
+    static size_t cnt = 0;
+    
+    if (cnt > 50 || (40 <= cnt && cnt <= 50 && node->type == kOperation)) {
+        cnt = 0;
+        fprintf(out, "\n");
+    }
+    
     if (node->type == kNumber) {
-        printDouble(out, node->value.number);
+        cnt += (size_t)printDouble(out, node->value.number);
         return;
     }
-
+    
     if (node->type == kVariable) {
         fprintf(out, "%s", node->value.variable->variable_name);
+        cnt += strlen(node->value.variable->variable_name);
         return;
     }
-
-    //fprintf(stderr, "%d ", node->value.operation);
+    
     switch (node->value.operation) {
-        case (kOperationAdd):
-            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv
-                || node->parent->value.operation == kOperationPow)) fprintf(out, "(");
+        case kOperationAdd: {
+            bool need_parens = node->parent && 
+                (node->parent->value.operation == kOperationMul ||
+                node->parent->value.operation == kOperationDiv ||
+                node->parent->value.operation == kOperationPow);
+            
+            if (need_parens) {
+                fprintf(out, "(");
+                cnt++;
+            }
+            
             DoTexInner(node->left, out);
             fprintf(out, " + ");
+            cnt++;
             DoTexInner(node->right, out);
-            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv
-                || node->parent->value.operation == kOperationPow)) fprintf(out, ")");
+            
+            if (need_parens) {
+                fprintf(out, ")");
+                cnt++;
+            }
             break;
-
-        case (kOperationSub):
-            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv
-                || node->parent->value.operation == kOperationPow)) fprintf(out, "(");
+        }
+        
+        case kOperationSub: {
+            bool need_parens = node->parent && 
+                (node->parent->value.operation == kOperationMul ||
+                node->parent->value.operation == kOperationDiv ||
+                node->parent->value.operation == kOperationPow);
+            
+            if (need_parens) {
+                fprintf(out, "(");
+                cnt++;
+            }
+            
             DoTexInner(node->left, out);
             fprintf(out, " - ");
+            cnt++;
             DoTexInner(node->right, out);
-            if (node->parent && (node->parent->value.operation == kOperationMul || node->parent->value.operation == kOperationDiv 
-                || node->parent->value.operation == kOperationPow)) fprintf(out, ")");
+            
+            if (need_parens) {
+                fprintf(out, ")");
+                cnt++;
+            }
             break;
-
-        case (kOperationMul):
-            // if (IsNegativeNumber(node->left) && abs(node->left->value.number + 1) < 1e-11) {
-            //     fprintf(out, "-");
-            //      if (IsNegativeNumber(node->right)) fprintf(out, "(");
-            //     DoTexInner(node->right, out);
-            //     if (IsNegativeNumber(node->right)) fprintf(out, ")");
-            //     break;
-            // }
-            if (node->parent && node->parent->value.operation == kOperationPow) fprintf(out, "(");
-            if (IsNegativeNumber(node->left)) fprintf(out, "(");
+        }
+        
+        case kOperationMul: {
+            if (node->parent && node->parent->value.operation == kOperationPow) {
+                fprintf(out, "(");
+                cnt++;
+            }
+            
+            if (IsNegativeNumber(node->left)) {
+                fprintf(out, "(");
+                cnt++;
+            }
             DoTexInner(node->left, out);
-            if (IsNegativeNumber(node->left)) fprintf(out, ")");
+            if (IsNegativeNumber(node->left)) {
+                fprintf(out, ")");
+                cnt++;
+            }
+            
             fprintf(out, " \\cdot ");
-            if (IsNegativeNumber(node->right)) fprintf(out, "(");
+            cnt += 7;
+            
+            if (IsNegativeNumber(node->right)) {
+                fprintf(out, "(");
+                cnt++;
+            }
             DoTexInner(node->right, out);
-            if (IsNegativeNumber(node->right)) fprintf(out, ")");
-            if (node->parent && node->parent->value.operation == kOperationPow) fprintf(out, ")");
+            if (IsNegativeNumber(node->right)) {
+                fprintf(out, ")");
+                cnt++;
+            }
+            
+            if (node->parent && node->parent->value.operation == kOperationPow) {
+                fprintf(out, ")");
+                cnt++;
+            }
             break;
-
-        case (kOperationDiv):
+        }
+        
+        case kOperationDiv:
             fprintf(out, "\\frac{");
             DoTexInner(node->left, out);
             fprintf(out, "}{");
             DoTexInner(node->right, out);
             fprintf(out, "}");
             break;
-
-        case (kOperationPow):
+            
+        case kOperationPow:
             fprintf(out, "{");
             DoTexInner(node->left, out);
             fprintf(out, "}^{");
             DoTexInner(node->right, out);
             fprintf(out, "}");
             break;
-
-        case (kOperationSin):
+            
+        case kOperationSin:
             fprintf(out, "\\sin(");
+            cnt += 5;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-
-        case (kOperationCos):
+            
+        case kOperationCos:
             fprintf(out, "\\cos(");
+            cnt += 5;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-
-        case (kOperationTg):
+            
+        case kOperationTg:
             fprintf(out, "\\tan(");
+            cnt += 5;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-
-        case (kOperationLn):
+            
+        case kOperationLn:
             fprintf(out, "\\log(");
+            cnt += 5;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-
-        case (kOperationArctg):
+            
+        case kOperationArctg:
             fprintf(out, "\\arctan(");
+            cnt += 8;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-
-        case (kOperationSinh):
+            
+        case kOperationSinh:
             fprintf(out, "\\sinh(");
+            cnt += 6;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-        case (kOperationCosh):
+            
+        case kOperationCosh:
             fprintf(out, "\\cosh(");
+            cnt += 6;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-        case (kOperationTgh):
+            
+        case kOperationTgh:
             fprintf(out, "\\tanh(");
+            cnt += 6;
             DoTexInner(node->right, out);
             fprintf(out, ")");
             break;
-
-        case (kOperationNone):
+            
+        case kOperationNone:
         default:
             fprintf(out, "?");
+            cnt++;
             break;
     }
 }
@@ -327,23 +389,26 @@ static bool IsNegativeNumber(DifNode_t *node) {
     return (node->type == kNumber && node->value.number < 0);
 }
 
-void printDouble(FILE *out, double x) {
+int printDouble(FILE *out, double x) {
     assert(out);
-
+    
     if (fabs(x) < eps) {
-        fprintf(out, "0");
-        return;
+        return fprintf(out, "0");
     }
-
+    
     char buf[64] = {};
     snprintf(buf, sizeof(buf), "%.6f", x);
-
+    
     char *ptr = buf + strlen(buf) - 1;
-    while (*ptr == '0' && ptr > buf) ptr--;
-
-    if (*ptr == '.') ptr--;
-
+    while (*ptr == '0' && ptr > buf) {
+        ptr--;
+    }
+    
+    if (*ptr == '.') {
+        ptr--;
+    }
+    
     *(ptr + 1) = '\0';
-
-    fprintf(out, "%s", buf);
+    
+    return fprintf(out, "%s", buf);
 }

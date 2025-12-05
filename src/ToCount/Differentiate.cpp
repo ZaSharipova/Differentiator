@@ -201,7 +201,7 @@ DifNode_t *Dif(DifRoot *root, DifNode_t *node, const char *main_var, FILE *texfi
             return NULL;
     }
 
-    PrintShrich(node, result, texfile);
+    //PrintShrich(node, result, texfile);
     
     return result;
 }

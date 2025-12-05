@@ -218,6 +218,7 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
 
     for (size_t i = 1; i <= ans; i++) {
         if (!forest->trees[i].root) {
+            printf("%zu\n", i);
             fprintf(out, "\\clearpage\\section{Дифференцируем %zu раз}\n\n\\noindent\n", i);
             new_tree = Dif(&forest->trees[i], forest->trees[i-1].root, main_var, out, Variable_Array);
             if (!new_tree) {
@@ -229,15 +230,22 @@ static DifErrors DoNDif(Forest *forest, DifRoot *root, DifRoot *root_last, size_
 
             DumpInfo->tree = &forest->trees[i];
             snprintf(DumpInfo->message, MAX_TEXT_SIZE, " Do (%zu) derivative", i);
-            DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
-            DoDump(DumpInfo);
-            DoTex(forest->trees[i].root, main_var, out);
+            //DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
+            //DoDump(DumpInfo);
+            //DoTex(forest->trees[i].root, main_var, out);
 
             fprintf(out, "\n\\subsection{Попробуем упростить выражение}\n\n\\noindent\n");
             forest->trees[i].root = OptimiseTree(&forest->trees[i], forest->trees[i].root, out, main_var);
-            DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
+            //DoTreeInGraphviz(forest->trees[i].root, DumpInfo, forest->trees[i].root);
             snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Optimised tree after counting (%zu) derivative", i);
-            DoDump(DumpInfo);
+            //DoDump(DumpInfo);
+
+            fprintf(out, "\n\\vspace{1em}\\text{Изначальное выражение:}\n\\begin{math}");
+            DoTexInner(forest->trees[0].root, out);
+            fprintf(out, "\n\\end{math}\n\n");
+            fprintf(out, "\n\\vspace{1em}\\text{%zu производная:}\n\n\\begin{math}\n", i);
+            DoTexInner(forest->trees[i].root, out);
+            fprintf(out, "\n\\end{math}\n\n");
         }
     }
 
@@ -253,14 +261,15 @@ static void DoDerivativeInPos(DifRoot *root2, VariableArr *Variable_Array, DumpI
     assert(out);
 
     //ReadVariableValue(Variable_Array);
+    Variable_Array->var_array[0].variable_value = positions->der_solve_pos;
     double res = SolveEquation(root2);
     printf(YELLOW "Результат вычисления выражения значения %zu производной: %lf\n" RESET, amount_of_dif, res);
 
 
     PrintSolutionForDerivative(root2->root, amount_of_dif, res, out, Variable_Array);
     strcpy(DumpInfo->message, " Calculate expression in a position in derived expression");
-    DoTreeInGraphviz(root2->root, DumpInfo, root2->root);
-    DoDump(DumpInfo);
+    //DoTreeInGraphviz(root2->root, DumpInfo, root2->root);
+    //DoDump(DumpInfo);
 }
 
 static DifErrors DoGnuplot(DifRoot *root_written,  VariableArr *Variable_Array, Forest *forest, FILE *out, Positions *positions) {
@@ -396,10 +405,10 @@ static DifErrors DoTaylor(Forest *forest, DifRoot *root, DumpInfo *DumpInfo, FIL
     ResizeForest(forest, forest->size + 1);
     forest->trees[forest->size - 1] = *new_root;
 
-    DoTreeInGraphviz(new_root->root, DumpInfo, new_root->root);
+   //DoTreeInGraphviz(new_root->root, DumpInfo, new_root->root);
     snprintf(DumpInfo->message, MAX_TEXT_SIZE, "Taylor polinomial");
     DumpInfo->tree = new_root;
-    DoDump(DumpInfo);
+    //DoDump(DumpInfo);
     PrintTaylor(new_root->root, main_var, position_taylor, num_pos, out);
 
     return kSuccess;
@@ -503,13 +512,13 @@ static void DoSystemForGnuplot(DifRoot *root, const char *main_var, Positions *p
         "set xrange[%lf:%lf];"
         "set yrange[%lf:%lf];"
         "set title 'Taylor comparison';"
-        "set label at %zu,%lf pointtype 3 pointsize 0.8 pointcolor rgb 'brown';"
         "plot "
         "'./data/gnuplot1.txt' using 1:2 with linespoints lc rgb 'red' lw 2 pt 5 ps 0.5 title 'function', "
         "'./data/gnuplot3.txt' using 1:2 with linespoints lc rgb 'blue' lw 2 pt 7 ps 0.5 title 'taylor polinomial',"
-        "'./data/gnuplot4.txt' using 1:2 with linespoints lc rgb 'orange' lw 1 pt 3 ps 0.5 title 'tangent';"
+        "'./data/gnuplot4.txt' using 1:2 with linespoints lc rgb 'orange' lw 1 pt 3 ps 0.5 title 'tangent',"
+        "'+' using (%lf):(%lf) with point lc rgb 'green' pt 7 ps 2 title 'position';"
         "\"",
-        main_var, positions->taylor_pos, SolveEquation(root), positions->x_left_3, positions->x_right_3, positions->y_bottom_3, positions->y_top_3
+        main_var, positions->x_left_3, positions->x_right_3, positions->y_bottom_3, positions->y_top_3, positions->taylor_pos, SolveEquation(root)
     );
 
 

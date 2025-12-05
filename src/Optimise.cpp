@@ -23,8 +23,9 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 static DifNode_t *CheckNodeAndConstOptimise(DifRoot *root, DifNode_t *node, bool *has_change);
 static DifNode_t *GetSubTree(DifRoot *root, DifNode_t *node, DifNode_t *delete_node, DifNode_t *to_main);
 
-static bool IsZero(DifNode_t *node);
-static bool IsOne(DifNode_t *node);
+static bool IsThisNumber(DifNode_t *node, double number);
+// static bool IsZero(DifNode_t *node);
+// static bool IsOne(DifNode_t *node);
 static bool IsNumber(DifNode_t *node);
 static bool IsOperation(DifNode_t *node);
 
@@ -124,12 +125,12 @@ static DifNode_t *AddOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     assert(node);
     assert(has_change);
 
-    if (IsZero(node->left)) {
+    if (IsThisNumber(node->left, 0)) {
         *has_change = true;
         return GetSubTree(root, node, node->left, node->right);
     }
 
-    if (IsZero(node->right)) {
+    if (IsThisNumber(node->right, 0)) {
         *has_change = true;
         return GetSubTree(root, node, node->right, node->left);
     }
@@ -142,12 +143,12 @@ static DifNode_t *SubOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     assert(node);
     assert(has_change);
 
-    if (IsZero(node->right)) {
+    if (IsThisNumber(node->right, 0)) {
         *has_change = true;
         return GetSubTree(root, node, node->right, node->left);
     }
 
-    if (IsZero(node->left)) {
+    if (IsThisNumber(node->left, 0)) {
         *has_change = true;
         DifNode_t *right = GetSubTree(root, node, node->left, node->right);
 
@@ -167,17 +168,17 @@ static DifNode_t *MulOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     assert(node);
     assert(has_change);
 
-    if (IsOne(node->left)) {
+    if (IsThisNumber(node->left, 1)) {
         *has_change = true;
         return GetSubTree(root, node, node->left, node->right);
     }
 
-    if (IsOne(node->right)) {
+    if (IsThisNumber(node->right, 1)) {
         *has_change = true;
         return GetSubTree(root, node, node->right, node->left);
     }
 
-    if (IsZero(node->left) || IsZero(node->right)) {
+    if (IsThisNumber(node->left, 0) || IsThisNumber(node->right, 0)) {
         DeleteNode(root, node);
         *has_change = true;
 
@@ -192,12 +193,12 @@ static DifNode_t *DivOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     assert(node);
     assert(has_change);
 
-    if (IsOne(node->right)) {
+    if (IsThisNumber(node->right, 1)) {
         *has_change = true;
         return GetSubTree(root, node, node->right, node->left);
     }
 
-    if (IsZero(node->left)) {
+    if (IsThisNumber(node->left, 0)) {
         DeleteNode(root, node);
         *has_change = true;
 
@@ -212,21 +213,21 @@ static DifNode_t *PowOptimise(DifRoot *root, DifNode_t *node, bool *has_change) 
     assert(node);
     assert(has_change);
 
-    if (IsZero(node->left)) {
+    if (IsThisNumber(node->left, 0)) {
         DeleteNode(root, node);
 
         *has_change = true;
         return NEWN(0.0);
     }
 
-    if (IsZero(node->right)) {
+    if (IsThisNumber(node->right, 0)) {
         DeleteNode(root, node);
 
         *has_change = true;
         return NEWN(1);
     }
 
-    if (IsOne(node->right)) {
+    if (IsThisNumber(node->right, 1)) {
         *has_change = true;
         
         return GetSubTree(root, node, node->right, node->left);
@@ -260,21 +261,21 @@ static DifNode_t *GetSubTree(DifRoot *root, DifNode_t *node, DifNode_t *delete_n
     return res;
 }
 
-static bool IsZero(DifNode_t *node) {
+static bool IsThisNumber(DifNode_t *node, double number) {
     if (!node) {
         return false;
     }
 
-    return (node->type == kNumber && fabs(node->value.number) < eps);
+    return (node->type == kNumber && fabs(node->value.number - number) < eps);
 }
 
-static bool IsOne(DifNode_t *node) {
-    if (!node) {
-        return false;
-    }
+// static bool IsOne(DifNode_t *node) {
+//     if (!node) {
+//         return false;
+//     }
 
-    return (node->type == kNumber && fabs(node->value.number - 1) < eps);
-}
+//     return (node->type == kNumber && fabs(node->value.number - 1) < eps);
+// }
 
 static bool IsNumber(DifNode_t *node) {
     if (!node) {
